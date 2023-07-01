@@ -31,7 +31,7 @@ BEGIN {
 		#write-host "=$size"
 		return $size
 	}
-    #$fracprog = @(' ', '▌')
+    #$fracprog = @(' ', '$([char]0x258c)')
     $units = @{
         "b" = 1
         "Kb" = 1e-3
@@ -79,11 +79,11 @@ PROCESS {
             $fw = ("{0:F2}" -f ($size * $multiplier)).length
             $output = "{0,${fw}:F2}/{1:F2} {2} | " -f ($(Get-DirectorySize) * $multiplier), ($size * $multiplier), $unit
             if (($currentperc * $BarLength) + 2 -ge $BarLength) {
-                foreach ($n in 0..($BarLength+1)) {$output += "█"}
+                foreach ($n in 0..($BarLength+1)) {$output += "$([char]0x2588)"}
             }
             else {
-                foreach ($n in 0..($currentperc * $BarLength)) {$output += "█"}
-                if (($currentperc * $BarLength) - [int]($currentperc * $BarLength) -gt 0.3) { $output += '▌' }
+                foreach ($n in 0..($currentperc * $BarLength)) {$output += "$([char]0x2588)"}
+                if (($currentperc * $BarLength) - [int]($currentperc * $BarLength) -gt 0.3) { $output += "$([char]0x258c)" }
                 else { $output += ' ' }
                 foreach ($n in (($currentperc * $BarLength)+1)..$BarLength) {$output += " "}
             }
