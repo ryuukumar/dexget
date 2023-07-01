@@ -107,7 +107,7 @@ if ($args[1]) {
 
 $manga = (Invoke-WebRequest "https://api.mangadex.org/manga/${url}/feed?translatedLanguage[]=${lang}&includes[]=scanlation_group&includes[]=user&order[volume]=asc&order[chapter]=asc&includes[]=manga&limit=500").content | ConvertFrom-Json
 
-$manga.data[0].relationships | ConvertTo-Json
+#$manga.data[0].relationships | ConvertTo-Json
 
 $groups=@()
 $mangaid=""
