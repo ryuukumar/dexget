@@ -77,6 +77,29 @@ function Add-Zeroes {
 	return $ret
 }
 
+function Write-Box {
+    param (
+        [string]$text
+    )
+
+    # Split the text into lines
+    $lines = $text -split "`n"
+
+    # Determine the width of the box
+    $maxWidth = ($lines | Measure-Object -Property Length -Maximum).Maximum
+
+    # Print the top of the box
+    Write-Host ("+" + "-" * $maxWidth + "--" + "+") 
+
+    # Print each line of the box
+    foreach ($line in $lines) {
+        Write-Host ("  " + $line.PadRight($maxWidth)) 
+    }
+
+    # Print the bottom of the box
+    Write-Host ("+" + "-" * $maxWidth + "--" + "+") 
+}
+
 . "$PSScriptRoot\ProgressBar.ps1"
 . "$PSScriptRoot\ProgressBlip.ps1"
 
@@ -86,7 +109,7 @@ function Add-Zeroes {
 if ($args[0]) {
 	$url = $args[0]
 } else {
-	$url = Read-Host "Id"
+	$url = Read-Host "Enter MangaDex title ID"
 }
 
 $dlPolicySet = $false
@@ -98,14 +121,23 @@ if ($args[1]) {
 	}
 }
 
+Write-Host "Looking though URL...`r" -NoNewline
+
 # ----------------------------------------------------------------------------------------------------------
 # Long term:
 # The permitted "limit" per request is 500 chapters. For anything beyond that, it is possible to use the
 # "offset" parameter to get the chapters after 500 (by index). I could probably count on two hands how many
 # manga have more than 500 chapters though.
 # ----------------------------------------------------------------------------------------------------------
+try {
+	$manga = (Invoke-WebRequest "https://api.mangadex.org/manga/${url}/feed?translatedLanguage[]=${lang}&includes[]=scanlation_group&includes[]=user&order[volume]=asc&order[chapter]=asc&includes[]=manga&limit=500").content | ConvertFrom-Json
 
-$manga = (Invoke-WebRequest "https://api.mangadex.org/manga/${url}/feed?translatedLanguage[]=${lang}&includes[]=scanlation_group&includes[]=user&order[volume]=asc&order[chapter]=asc&includes[]=manga&limit=500").content | ConvertFrom-Json
+}
+catch {
+	write-host "`nFATAL ERROR!`n" -ForegroundColor red
+	Write-Host "Something went wrong getting the manga metadata. You can try the following:`n - Verify that this is the correct URL:`n`n`thttps://mangadex.org/title/${url}/`n`n - Check your internet connection.`n - Make sure there is no firewall blocking PowerShell.`n - If this doesn't fix it, report a bug."
+	exit
+}
 
 #$manga.data[0].relationships | ConvertTo-Json
 
@@ -134,7 +166,8 @@ foreach ($scg in $manga.data[0].relationships) {
 	}
 }
 
-write-host "Identified title $mangatitle"
+write-host "Identified title: " -NoNewline
+write-host "$mangatitle" -ForegroundColor Yellow
 
 if($mangatitle.length -gt 30) {
 	# U+2026 -> ellipsis (three dots)
@@ -200,7 +233,8 @@ function get-nextchp {
 }
 
 
-Write-Host "Scan results: Found $($chapters.length) chapters."
+Write-Host -NoNewline "Scan results: "
+Write-Host "Found $($chapters.length) chapters." -ForegroundColor Green
 
 $chpnum = read-host "Start from chapter"
 $chpindex = get-chpindex ([ref]$chapters) $chpnum
@@ -397,7 +431,7 @@ if (($chpindex) -lt $chapters.length) {
 	}
 	
 	for ($i=$chpindex; $i -lt $last; $i++) {
-		write-host "`n+-------------------+`n  Chapter $($i + 1) of $($chapters.length)`n+-------------------+"
+		write-box "Chapter $($i + 1) of $($chapters.length)"
 		get-chapter $chapters[$i].id
 		rename-item "$($chapters[$i].id).pdf" "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" -Force
 		if ($clchoice -eq "y" -or $clchoice -eq "Y") {
@@ -405,7 +439,7 @@ if (($chpindex) -lt $chapters.length) {
 		}
 	}
 
-	write-host "`n+--------------------------+`n  All downloads completed.`n+--------------------------+"
+	write-box "All downloads completed."
 
 	cd ".."
 }
