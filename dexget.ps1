@@ -104,25 +104,26 @@ function Add-Zeroes {
 function Write-Box {
     param (
         [string]$text,
-        [bool]$center=$false
-    )
+        [bool]$center=$false,
+		[System.ConsoleColor]$fgcolor=[System.ConsoleColor]"White"
+	)
     
     $lines = $text -split "`n"
     $maxWidth = ($lines | Measure-Object -Property Length -Maximum).Maximum
 
-    Write-Host ("+" + "-" * $maxWidth + "--" + "+") 
+    Write-Host ("+" + "-" * $maxWidth + "--" + "+") -ForegroundColor $fgcolor
 
     foreach ($line in $lines) {
         if ($center) {
             $leftPadding = [math]::Floor(($maxWidth - $line.Length) / 2)
             $rightPadding = $maxWidth - $line.Length - $leftPadding
-            Write-Host ("  " + " " * $leftPadding + $line + " " * $rightPadding + " ")
+            Write-Host ("  " + " " * $leftPadding + $line + " " * $rightPadding + " ") -ForegroundColor $fgcolor
         } else {
-            Write-Host ("  " + $line.PadRight($maxWidth) + " ")
+            Write-Host ("  " + $line.PadRight($maxWidth) + " ") -ForegroundColor $fgcolor
         }
     }
 
-    Write-Host ("+" + "-" * $maxWidth + "--" + "+") 
+    Write-Host ("+" + "-" * $maxWidth + "--" + "+")  -ForegroundColor $fgcolor
 }
 
 
@@ -259,13 +260,16 @@ function get-nextchp {
 }
 
 
-Write-Host -NoNewline "Scan results: "
-Write-Host "Found $($chapters.length) chapters." -ForegroundColor Green
+Write-Host "Scan results:"
+Write-Host " - Found $($chapters.length) chapters." -ForegroundColor Green
+Write-Host " - First chapter number: $($chapters[0].attributes.chapter)" -ForegroundColor Green
 
 $chpindex = 0
 $chpnum = 0
 
 if (test-path "$savedir\(Manga) ${mangatitle}") {
+	Write-Host "Found a previous save of the manga in the save directory." -ForegroundColor Yellow
+
 	$files = $(Get-ChildItem "$savedir\(Manga) ${mangatitle}")
 	$filenos = @()
 
@@ -447,68 +451,84 @@ function get-chapter {
 	
 }
 
-Set-Location $savedir
+$originaldir = Get-Location
 
-if (($chpindex) -lt $chapters.length) {
-	if ($dlPolicySet) {
-		if ($singleDl) {
-			$choice = "n"
+try {
+	Write-Host ""
+
+	Set-Location $savedir
+
+	if (($chpindex) -lt $chapters.length) {
+		if ($dlPolicySet) {
+			if ($singleDl) {
+				$choice = "n"
+			} else {
+				$choice = "y"
+			}
 		} else {
-			$choice = "y"
+			$choice = Read-Host "There are $($chapters.length - 1 - $chpindex) more chapters after the given ID. Would you like to download all of them? [Y/n/s]"
 		}
-	} else {
-		$choice = Read-Host "There are $($chapters.length - 1 - $chpindex) more chapters after the given ID. Would you like to download all of them? [Y/n/s]"
-	}
 
-	if (-not $cloudcopy) {
-		$clchoice = Read-Host "Do you want to save a copy of this download to the cloud? [Y/n]"
-	}
+		if (-not $cloudcopy) {
+			$clchoice = Read-Host "Do you want to save a copy of this download to the cloud? [Y/n]"
+		}
 
-	if (-not ($choice -eq "Y" -or $choice -eq "y" -or $choice -eq "S" -or $choice -eq "s")) { 
-		get-chapter $chapters[$chpindex].id
-		rename-item "$($chapters[$chpindex].id).pdf" "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" -Force
+		if (-not ($choice -eq "Y" -or $choice -eq "y" -or $choice -eq "S" -or $choice -eq "s")) { 
+			get-chapter $chapters[$chpindex].id
+			rename-item "$($chapters[$chpindex].id).pdf" "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" -Force
+			if ($clchoice -eq "y" -or $clchoice -eq "Y") {
+				Copy-Item -Path "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" "$clouddir\$mangadir"
+			}
+
+			exit
+		}
+
+		if ($choice -eq "S" -or $choice -eq "s") {
+			[int]$last = Read-Host "Number of chapters to download"
+			$last += $chpindex
+			if ($last -ge $chapters.length) {
+				$last = $chapters.length
+			}
+			write-Host "Downloading till chapter $last."
+		} else {
+			[int]$last = $chapters.length
+		}
+
+		$mangadir = "(Manga) ${mangatitle}"
+		if (!(Test-Path $mangadir)) {
+			mkdir $mangadir | out-null
+		}
+		Set-Location "$(Get-Location)\${mangadir}"
+
+		write-host ""
+		Write-Box "Starting $($last - $chpindex) download tasks." -fgcolor Blue
+		write-host ""
+
 		if ($clchoice -eq "y" -or $clchoice -eq "Y") {
-			Copy-Item -Path "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" "$clouddir\$mangadir"
+			if (!(Test-Path "$clouddir\$mangadir")) {
+				mkdir "$clouddir\$mangadir" | out-null
+			}
+		}
+		
+		for ($i=$chpindex; $i -lt $last; $i++) {
+			write-box "Chapter $($i + 1) of $($chapters.length)" -fgcolor Cyan
+			get-chapter $chapters[$i].id
+			rename-item "$($chapters[$i].id).pdf" "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" -Force
+			if ($clchoice -eq "y" -or $clchoice -eq "Y") {
+				Copy-Item -Path "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" "$clouddir\$mangadir"
+			}
 		}
 
-		exit
-	}
+		write-box "All downloads completed."
 
-	if ($choice -eq "S" -or $choice -eq "s") {
-		[int]$last = Read-Host "Number of chapters to download"
-		$last += $chpindex
-		if ($last -ge $chapters.length) {
-			$last = $chapters.length
-		}
-		write-Host "Downloading till chapter $last."
-	} else {
-		[int]$last = $chapters.length
+		Set-Location ".."
 	}
+}
+finally {
+	Set-Location $originaldir
+	Write-Host "`n`nNuking download. Bye!"
 
-	$mangadir = "(Manga) ${mangatitle}"
-	if (!(Test-Path $mangadir)) {
-		mkdir $mangadir | out-null
-	}
-	Set-Location "$(Get-Location)\${mangadir}"
-
-	if ($clchoice -eq "y" -or $clchoice -eq "Y") {
-		if (!(Test-Path "$clouddir\$mangadir")) {
-			mkdir "$clouddir\$mangadir" | out-null
-		}
-	}
-	
-	for ($i=$chpindex; $i -lt $last; $i++) {
-		write-box "Chapter $($i + 1) of $($chapters.length)"
-		get-chapter $chapters[$i].id
-		rename-item "$($chapters[$i].id).pdf" "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" -Force
-		if ($clchoice -eq "y" -or $clchoice -eq "Y") {
-			Copy-Item -Path "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" "$clouddir\$mangadir"
-		}
-	}
-
-	write-box "All downloads completed."
-
-	Set-Location ".."
+	exit
 }
 
 
@@ -520,6 +540,6 @@ if (($chpindex) -lt $chapters.length) {
 #---------------------------------------#
 
 
-Set-Location ..
+Set-Location $originaldir
 
 exit
