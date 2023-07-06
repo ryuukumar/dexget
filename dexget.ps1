@@ -7,6 +7,9 @@
 #
 
 
+$VERSION = '1.1'
+
+
 
 
 
@@ -100,24 +103,25 @@ function Add-Zeroes {
 
 function Write-Box {
     param (
-        [string]$text
+        [string]$text,
+        [bool]$center=$false
     )
-
-    # Split the text into lines
+    
     $lines = $text -split "`n"
-
-    # Determine the width of the box
     $maxWidth = ($lines | Measure-Object -Property Length -Maximum).Maximum
 
-    # Print the top of the box
     Write-Host ("+" + "-" * $maxWidth + "--" + "+") 
 
-    # Print each line of the box
     foreach ($line in $lines) {
-        Write-Host ("  " + $line.PadRight($maxWidth)) 
+        if ($center) {
+            $leftPadding = [math]::Floor(($maxWidth - $line.Length) / 2)
+            $rightPadding = $maxWidth - $line.Length - $leftPadding
+            Write-Host ("  " + " " * $leftPadding + $line + " " * $rightPadding + " ")
+        } else {
+            Write-Host ("  " + $line.PadRight($maxWidth) + " ")
+        }
     }
 
-    # Print the bottom of the box
     Write-Host ("+" + "-" * $maxWidth + "--" + "+") 
 }
 
@@ -141,6 +145,10 @@ function Write-Box {
 #  ENTRY POINT                          #
 #---------------------------------------#
 
+
+Write-Host ""
+Write-Box "DexGet v$VERSION`n@ryuukumar on GitHub`nhttps://github.com/ryuukumar/dexget" -center $true
+Write-Host ""
 
 [string]$url=""
 [bool]$cloudcopy=$false
@@ -276,7 +284,7 @@ if (test-path "$savedir\(Manga) ${mangatitle}") {
 			$chpindex = get-chpindex ([ref]$chapters) $chpnum
 		}
 		else {
-			Write-Host "Exiting."
+			Write-Host "Nothing to download. Exiting."
 			exit
 		}
 	}
