@@ -254,10 +254,54 @@ function get-nextchp {
 Write-Host -NoNewline "Scan results: "
 Write-Host "Found $($chapters.length) chapters." -ForegroundColor Green
 
-$chpnum = read-host "Start from chapter"
-$chpindex = get-chpindex ([ref]$chapters) $chpnum
+$chpindex = 0
+$chpnum = 0
 
-write-host "Chapter found at index $chpindex."
+if (test-path "$savedir\(Manga) ${mangatitle}") {
+	$files = $(Get-ChildItem "$savedir\(Manga) ${mangatitle}")
+	$filenos = @()
+
+	foreach ($file in $files) {
+		[double]$chnum = (($file -split "\)")[0]) -replace '[^0-9.]',''
+		$filenos += $chnum
+	}
+	
+	$lastch = [double](($filenos | Measure-Object -Maximum).Maximum)
+	$chindex = get-chpindex ([ref]$chapters) $lastch
+
+	if ($chindex -eq $chapters.length - 1) {
+		$redown = Read-Host "The offline copy of the manga is up to date. Would you still like to proceed? [Y/n]"
+		if ($redown -eq 'Y' -or $redown -eq 'y') {
+			$chpnum = read-host "Start from chapter"
+			$chpindex = get-chpindex ([ref]$chapters) $chpnum
+		}
+		else {
+			Write-Host "Exiting."
+			exit
+		}
+	}
+
+	else {
+		$cont = Read-Host "This manga was previously downloaded till chapter $lastch. Do you wish to continue? [Y/n]"
+		if ($cont -eq 'y' -or $cont -eq 'Y') {
+			$chpindex = $chindex+1
+			$chpnum = $lastch
+		} else {
+			$chpnum = read-host "Start from chapter"
+			$chpindex = get-chpindex ([ref]$chapters) $chpnum
+		}
+	}
+}
+
+else {
+	$chpnum = read-host "Start from chapter"
+	$chpindex = get-chpindex ([ref]$chapters) $chpnum
+}
+
+if ($chpindex -eq -1) {
+	write-host "ERROR: " -NoNewline -ForegroundColor Red
+	Write-Host "No chapter found with chapter number $chpnum!"
+}
 
 function get-chapter {
 	param (
