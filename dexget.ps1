@@ -15,7 +15,6 @@
 #---------------------------------------#
 
 
-$mkdirbuffer
 $width = 1000
 $lang = "en"
 $savedir = "Manga"
@@ -328,7 +327,7 @@ function get-chapter {
 		}
 
 		if (-not (test-path "$wd\$id")) {
-			$mkdirbuffer = mkdir "$wd\$id"
+			mkdir "$wd\$id" | out-null
 		}
 
 		$i=0
@@ -374,23 +373,23 @@ function get-chapter {
 		$buffer = $downloadJobs | Wait-Job
 	}
 
-	progress-bar -scriptblock $dlscript -size $totalsize -dlfile "$(pwd)/$id" `
+	progress-bar -scriptblock $dlscript -size $totalsize -dlfile "$(Get-Location)/$id" `
 		-pretext "" -isdirectory $true -endwithnewline $true `
-		-argumentlist @($id, $baseUr, $hash, $images, $(pwd), $imglist)
+		-argumentlist @($id, $baseUr, $hash, $images, $(Get-Location), $imglist)
 
 	Write-Host "Downloaded and saved $images images."
 
 	#write-host "cd `"$(pwd)/$id`" ; foreach (`$img in `$(ls *.png).name) { magick convert `"`$img`" -quality 95 `"`$img.jpg`" ; remove-item `"`$img`" } ; cd `"..`""
-	progress-blip -command "cd `"$(pwd)/$id`" ; foreach (`$img in `$(ls *.png).name) { magick convert `"`$img`" -quality 90 `"`$img.jpg`" ; remove-item `"`$img`" } ; cd `"..`"" `
+	progress-blip -command "cd `"$(Get-Location)/$id`" ; foreach (`$img in `$(ls *.png).name) { magick convert `"`$img`" -quality 90 `"`$img.jpg`" ; remove-item `"`$img`" } ; cd `"..`"" `
 		-pretext "Preparing images... " `
 		-endwithnewline $false
 	
 	#write-host "magick `"$(pwd)/$id/*.jpg`" -density 720x `"$(pwd)/$id.pdf`" "
-	progress-blip -command "magick `"$(pwd)/$id/*.jpg`" -density 80x -resize ${width}x -compress JPEG `"$(pwd)/$id.pdf`" " `
+	progress-blip -command "magick `"$(Get-Location)/$id/*.jpg`" -density 80x -resize ${width}x -compress JPEG `"$(Get-Location)/$id.pdf`" " `
 		-pretext "Converting to PDF... " `
 		-endwithnewline $false
 	
-	progress-blip -command "cd `"$(pwd)`" ; remove-item $id -recurse" `
+	progress-blip -command "cd `"$(Get-Location)`" ; remove-item $id -recurse" `
 		-pretext "Clean up... " `
 		-endwithnewline $false
 	
@@ -435,11 +434,15 @@ if (($chpindex) -lt $chapters.length) {
 	}
 
 	$mangadir = "(Manga) ${mangatitle}"
-	$mkdirbuffer = mkdir $mangadir
+	if (!(Test-Path $mangadir)) {
+		mkdir $mangadir | out-null
+	}
 	Set-Location "$(Get-Location)\${mangadir}"
 
 	if ($clchoice -eq "y" -or $clchoice -eq "Y") {
-		$mkdirbuffer = mkdir "$clouddir\$mangadir"
+		if (!(Test-Path "$clouddir\$mangadir")) {
+			mkdir "$clouddir\$mangadir" | out-null
+		}
 	}
 	
 	for ($i=$chpindex; $i -lt $last; $i++) {
