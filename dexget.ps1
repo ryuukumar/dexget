@@ -1,11 +1,33 @@
 
 
+#
+#	DEXGET.PS1
+#	A short script to download manga from MangaDex and save it locally for reading on-the-go
+#	Author: @ryuukumar (https://github.com/ryuukumar)
+#
+
+
+
+
+
+#---------------------------------------#
+#  PREFERENCES                          #
+#---------------------------------------#
+
+
 $mkdirbuffer
 $width = 1000
 $lang = "en"
 $savedir = "Manga"
 $clouddir = "C:\users\adity\iCloudDrive\Manga"
 
+
+
+
+
+#---------------------------------------#
+#  FUNCTIONS                            #
+#---------------------------------------#
 
 
 # This function takes a string as input, removes any illegal characters from it (characters not allowed in a filename), and returns the cleaned string.
@@ -100,8 +122,26 @@ function Write-Box {
     Write-Host ("+" + "-" * $maxWidth + "--" + "+") 
 }
 
+
+
+
+
+#---------------------------------------#
+#  INCLUDES                             #
+#---------------------------------------#
+
+
 . "$PSScriptRoot\ProgressBar.ps1"
 . "$PSScriptRoot\ProgressBlip.ps1"
+
+
+
+
+
+#---------------------------------------#
+#  ENTRY POINT                          #
+#---------------------------------------#
+
 
 [string]$url=""
 [bool]$cloudcopy=$false
@@ -123,12 +163,12 @@ if ($args[1]) {
 
 Write-Host "Looking though URL...`r" -NoNewline
 
-# ----------------------------------------------------------------------------------------------------------
+
 # Long term:
 # The permitted "limit" per request is 500 chapters. For anything beyond that, it is possible to use the
 # "offset" parameter to get the chapters after 500 (by index). I could probably count on two hands how many
-# manga have more than 500 chapters though.
-# ----------------------------------------------------------------------------------------------------------
+# manga (I would bother reading) have more than 500 chapters though.
+
 try {
 	$manga = (Invoke-WebRequest "https://api.mangadex.org/manga/${url}/feed?translatedLanguage[]=${lang}&includes[]=scanlation_group&includes[]=user&order[volume]=asc&order[chapter]=asc&includes[]=manga&limit=500").content | ConvertFrom-Json
 
@@ -138,8 +178,6 @@ catch {
 	Write-Host "Something went wrong while getting the manga metadata. You can try the following:`n - Verify that this is the correct URL:`n`n`thttps://mangadex.org/title/${url}/`n`n - Check your internet connection.`n - Make sure there is no firewall blocking PowerShell.`n - If this doesn't fix it, report a bug."
 	exit
 }
-
-#$manga.data[0].relationships | ConvertTo-Json
 
 $groups=@()
 $mangaid=""
@@ -174,24 +212,8 @@ if($mangatitle.length -gt 30) {
 	$mangatitle = $mangatitle.substring(0, 20) + [char]0x2026
 }
 
-#$groups
-
-#$allchlink = "https://api.mangadex.org/manga/${mangaid}/aggregate?translatedLanguage[]=${lang}"
-
-#foreach ($grp in $groups) {
-#	$allchlink += "&groups[]=$grp"
-#}
-
-#$allchlink
-
-#$allchapters = (Invoke-WebRequest $allchlink).content | ConvertFrom-Json
-
-#$allchapters | ConvertTo-Json
-
 $chapters = @()
 
-#$volcount = 1
-#$lastchp = 1
 foreach ($ch in $manga.data) {
 	if ($ch.type -ne "chapter") {
 		continue
@@ -202,8 +224,6 @@ foreach ($ch in $manga.data) {
 	$chapters += $ch
 }
 
-#$chapters | ConvertTo-Json
-
 function get-chpindex {
 	param (
 		[ref]$chps,
@@ -212,7 +232,6 @@ function get-chpindex {
 
 	for ($i=0; $i -lt $chps.value.length; $i++) {
 		if ($chps.value[$i].attributes.chapter -ne $chpnum) {continue}
-		#$chps.value[$i]
 		return $i
 	}
 
@@ -241,12 +260,6 @@ $chpindex = get-chpindex ([ref]$chapters) $chpnum
 
 write-host "Chapter found at index $chpindex."
 
-#$nextchp = get-nextchp ([ref]$chapters) $url
-
-#if ($nextchp -ne -1) {
-	#Write-Host "Next chapter is at ID ${nextchp}. You can access it at https://mangadex.org/chapter/${nextchp}/1"
-#}
-
 function get-chapter {
 	param (
 		[string]$id
@@ -254,7 +267,6 @@ function get-chapter {
 
 	$json = (Invoke-WebRequest "https://api.mangadex.org/at-home/server/${id}?forcePort443=false").content | ConvertFrom-Json
 
-	#$json | ConvertTo-Json
 	$baseUr = "https://uploads.mangadex.org"
 	$hash = $json.chapter.hash
 
@@ -384,7 +396,7 @@ function get-chapter {
 	
 }
 
-cd $savedir
+Set-Location $savedir
 
 if (($chpindex) -lt $chapters.length) {
 	if ($dlPolicySet) {
@@ -424,7 +436,7 @@ if (($chpindex) -lt $chapters.length) {
 
 	$mangadir = "(Manga) ${mangatitle}"
 	$mkdirbuffer = mkdir $mangadir
-	cd "$(pwd)\${mangadir}"
+	Set-Location "$(Get-Location)\${mangadir}"
 
 	if ($clchoice -eq "y" -or $clchoice -eq "Y") {
 		$mkdirbuffer = mkdir "$clouddir\$mangadir"
@@ -441,9 +453,18 @@ if (($chpindex) -lt $chapters.length) {
 
 	write-box "All downloads completed."
 
-	cd ".."
+	Set-Location ".."
 }
 
-cd ..
+
+
+
+
+#---------------------------------------#
+#  EXIT                                 #
+#---------------------------------------#
+
+
+Set-Location ..
 
 exit
