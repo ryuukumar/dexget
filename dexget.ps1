@@ -434,16 +434,24 @@ function get-chapter {
 		-argumentlist @($id, $baseUr, $hash, $images, $(Get-Location), $imglist)
 
 	Write-Host "Downloaded and saved $images images."
-
+	
 	#write-host "cd `"$(pwd)/$id`" ; foreach (`$img in `$(ls *.png).name) { magick convert `"`$img`" -quality 95 `"`$img.jpg`" ; remove-item `"`$img`" } ; cd `"..`""
 	progress-blip -command "cd `"$(Get-Location)/$id`" ; foreach (`$img in `$(ls *.png).name) { magick convert `"`$img`" -quality 90 `"`$img.jpg`" ; remove-item `"`$img`" } ; cd `"..`"" `
 		-pretext "Preparing images... " `
 		-endwithnewline $false
 	
+	$pos = $host.UI.RawUI.CursorPosition
+	$pos.Y--
+	$host.UI.RawUI.CursorPosition = $pos
+	
 	#write-host "magick `"$(pwd)/$id/*.jpg`" -density 720x `"$(pwd)/$id.pdf`" "
 	progress-blip -command "magick `"$(Get-Location)/$id/*.jpg`" -density 80x -resize ${width}x -compress JPEG `"$(Get-Location)/$id.pdf`" " `
 		-pretext "Converting to PDF... " `
 		-endwithnewline $false
+	
+	$pos = $host.UI.RawUI.CursorPosition
+	$pos.Y--
+	$host.UI.RawUI.CursorPosition = $pos
 	
 	progress-blip -command "cd `"$(Get-Location)`" ; remove-item $id -recurse" `
 		-pretext "Clean up... " `
@@ -519,14 +527,12 @@ try {
 			}
 		}
 
-		write-box "All downloads completed."
-
 		Set-Location ".."
 	}
 }
 finally {
 	Set-Location $originaldir
-	Write-Host "`n`nNuking download. Bye!"
+	Write-Host "`nDownloads complete."
 
 	exit
 }
