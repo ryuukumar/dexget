@@ -321,7 +321,8 @@ function get-chapter {
 		[string]$id
 	)
 
-	$json = (Invoke-WebRequest "https://api.mangadex.org/at-home/server/${id}?forcePort443=false").content | ConvertFrom-Json
+	$client = New-Object System.Net.WebClient
+	$json = $client.DownloadString("https://api.mangadex.org/at-home/server/${id}?forcePort443=false") | ConvertFrom-Json
 
 	$baseUr = "https://uploads.mangadex.org"
 	$hash = $json.chapter.hash
@@ -402,20 +403,16 @@ function get-chapter {
 				[int]$target,
 				[int]$maxval
 			)
-			$tgtlnt = ([string]$target).Length
-			$maxlnt = ([string]$maxval).Length
+			return $target.ToString().PadLeft([string]$maxval.Length, '0')
+		}
 		
-			if ($tgtlnt -eq $maxlnt) {
-				return ([string]$target)
-			}
-		
-			[string]$ret=""
-			for ($i=0; $i -lt ($maxlnt-$tgtlnt); $i++) {
-				$ret += "0"
-			}
-			$ret += ([string]$target)
-		
-			return $ret
+		# Define the script block for the download job
+		$scriptBlock = {
+			param($url, $outputPath, $filesize, $i, $images)
+			
+			(New-Object System.Net.WebClient).DownloadFile($url, $outputPath)
+			
+			Write-Host "`rDownloaded and saved $outputPath."
 		}
 
 		if (-not (test-path "$wd\$id")) {
@@ -438,15 +435,6 @@ function get-chapter {
 			$outputPath = "$wd/$id/$filename"
 
 			write-error "Saving $url to $outputpath"
-			
-			# Define the script block for the download job
-			$scriptBlock = {
-				param($url, $outputPath, $filesize, $i, $images)
-				
-				(New-Object System.Net.WebClient).DownloadFile($url, $outputPath)
-				
-				Write-Host "`rDownloaded and saved $outputPath."
-			}
 			
 			# Start the download job
 			$job = Start-Job -ScriptBlock $scriptBlock -ArgumentList $url, $outputPath, $filesize, $i, $images
