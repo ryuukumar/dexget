@@ -22,6 +22,7 @@ $width = 1000
 $lang = "en"
 $savedir = "Manga"
 $clouddir = "C:\users\adity\iCloudDrive\Manga"
+$maxConcurrentJobs = 25
 
 
 
@@ -327,14 +328,49 @@ function get-chapter {
 
 	$imglist = $json.chapter.data
 	$images = $imglist.length
+
+	$runspacePool = [RunspaceFactory]::CreateRunspacePool(1, $maxConcurrentJobs)
+	$runspacePool.Open()
+
+	$scriptBlock = {
+		param($url)
+		$HttpWebResponse = $null
+		$HttpWebRequest = [System.Net.HttpWebRequest]::Create($url)
+		try {
+			$HttpWebResponse = $HttpWebRequest.GetResponse()
+			$HttpWebResponse.close()
+			return $HttpWebResponse.ContentLength
+		}
+		catch {
+			$_ | ConvertTo-Json
+		}
+	}
+
 	write-host "Checking download size... " -NoNewline
+
+	$jobs = @()
+	foreach ($img in $imglist) {
+		$url = "$baseUr/data/$hash/$img"
+		$ps = [PowerShell]::Create()
+		$ps.RunspacePool = $runspacePool
+		$ps.AddScript($scriptBlock).AddArgument($url) | out-null
+		$handle = $ps.BeginInvoke()
+		$jobs += New-Object PSObject -Property @{
+			Handle = $handle
+			PowerShell = $ps
+		}
+	}
 
 	[int]$totalsize = 0
 
-	foreach ($img in $imglist) {
-		$filesize = Web-FileSize("$baseUr/data/$hash/$img")
-		$totalsize += $filesize
+	$jobs | ForEach-Object {
+		$result = $_.PowerShell.EndInvoke($_.Handle)
+		$totalsize += $result[0]
+		$_.PowerShell.Dispose()
 	}
+
+	$runspacePool.Close()
+	$runspacePool.Dispose()
 
 	$sizestr = Format-Filesize($totalsize)
 
@@ -389,7 +425,7 @@ function get-chapter {
 		$i=0
 
 		# Define the maximum number of concurrent downloads
-		$maxConcurrentDownloads = 10
+		#$maxConcurrentJobs = 10
 
 		# Create an array to hold the download jobs
 		$downloadJobs = @()
@@ -419,7 +455,7 @@ function get-chapter {
 			$downloadJobs += $job
 			
 			# If there are already the maximum number of download jobs running, wait for one to complete before starting another
-			if ($downloadJobs.Count -eq $maxConcurrentDownloads) {
+			if ($downloadJobs.Count -eq $maxConcurrentJobs) {
 				$finishedJob = $downloadJobs | Wait-Job -Any
 				$downloadJobs.Remove($finishedJob)
 			}
@@ -532,7 +568,7 @@ try {
 }
 finally {
 	Set-Location $originaldir
-	Write-Host "`nDownloads complete."
+	Write-Host "`nDownloads complete. $_"
 
 	exit
 }
