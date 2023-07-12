@@ -136,6 +136,8 @@ function Move-Up {
 #---------------------------------------#
 
 
+#  0. GET ID
+
 Write-Host ""
 Write-Box "DexGet v$VERSION`n@ryuukumar on GitHub`nhttps://github.com/ryuukumar/dexget" -center $true
 Write-Host ""
@@ -158,17 +160,19 @@ if ($args[1]) {
 	}
 }
 
-Write-Host "Looking though URL...`r" -NoNewline
 
+#  1. DOWNLOAD URL
 
 # Long term:
 # The permitted "limit" per request is 500 chapters. For anything beyond that, it is possible to use the
 # "offset" parameter to get the chapters after 500 (by index). I could probably count on two hands how many
 # manga (I would bother reading) have more than 500 chapters though.
 
-try {
-	$manga = (Invoke-WebRequest "https://api.mangadex.org/manga/${url}/feed?translatedLanguage[]=${lang}&includes[]=scanlation_group&includes[]=user&order[volume]=asc&order[chapter]=asc&includes[]=manga&limit=500").content | ConvertFrom-Json
+Write-Host "Looking though URL...`r" -NoNewline
 
+try {
+	$client = New-Object System.Net.WebClient
+	$manga = $client.DownloadString("https://api.mangadex.org/manga/${url}/feed?translatedLanguage[]=${lang}&includes[]=scanlation_group&includes[]=user&order[volume]=asc&order[chapter]=asc&includes[]=manga&limit=500") | ConvertFrom-Json
 }
 catch {
 	write-host "`nFATAL ERROR!`n" -ForegroundColor red
