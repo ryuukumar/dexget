@@ -403,7 +403,7 @@ function get-chapter {
 				[int]$target,
 				[int]$maxval
 			)
-			return $target.ToString().PadLeft([string]$maxval.Length, '0')
+			return $target.ToString().PadLeft(([string]$maxval).Length, '0')
 		}
 		
 		# Define the script block for the download job
