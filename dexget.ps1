@@ -180,6 +180,9 @@ catch {
 	exit
 }
 
+
+#  2. SCOUR MANGA FOR DATA
+
 $groups=@()
 $mangaid=""
 $mangatitle=""
@@ -260,6 +263,9 @@ Write-Host " - First chapter number: $($chapters[0].attributes.chapter)" -Foregr
 $chpindex = 0
 $chpnum = 0
 
+
+#  3. GET USER INPUT ON WHAT TO DO
+
 if (test-path "$savedir\(Manga) ${mangatitle}") {
 	Write-Host "Found a previous save of the manga in the save directory." -ForegroundColor Yellow
 
@@ -307,6 +313,9 @@ if ($chpindex -eq -1) {
 	write-host "ERROR: " -NoNewline -ForegroundColor Red
 	Write-Host "No chapter found with chapter number $chpnum!"
 }
+
+
+#  4. FUNCTION DEFINITION FOR GETTING THE CHAPTER
 
 function get-chapter {
 	param (
@@ -467,6 +476,9 @@ function get-chapter {
 		-endwithnewline $false
 	
 }
+
+
+#  5. GET THE ACTUAL CHAPTER
 
 $originaldir = Get-Location
 
