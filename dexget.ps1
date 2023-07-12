@@ -435,7 +435,7 @@ function get-chapter {
 		}
 
 		# Wait for any remaining download jobs to complete
-		$buffer = $downloadJobs | Wait-Job
+		$downloadJobs | Wait-Job | Out-Null
 	}
 
 	progress-bar -scriptblock $dlscript -size $totalsize -dlfile "$(Get-Location)/$id" `
