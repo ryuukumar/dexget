@@ -59,24 +59,19 @@ function Web-FileSize ([string]$url) {
 
 # This function takes a filename as input and returns the file extension by extracting it from the input filename.
 function Give-FileType([string]$filename) {
-	$substrs = $filename -split '\.'
-	return $substrs[$substrs.length - 1]
+	return $filename.Split('.')[-1]
 }
 
 # This function takes an integer file size (in bytes) as input and returns a formatted string with the file size in bytes, kilobytes, or megabytes, depending on the size.
 function Format-Filesize([int]$length) {
 	if ($length -lt 1000) {
-		return [string]::Format('{0:N0}',${length}) + " bytes"
+		return "$length bytes"
+	}
+	elseif ($length -lt 1MB) {
+		return "{0:N0}KB" -f ($length/1KB)
 	}
 	else {
-		if ($length / 1000 -lt 1000) {
-			[string]${kbimg}=[string]::Format('{0:N0}',${length}/1024) + "KB"
-			return ${kbimg}
-		}
-		else {
-			[string]${mbytes}=[string]::Format('{0:N}',${length}/(1024*1024)) + "MB"
-			return ${mbytes}
-		}
+		return "{0:N2}MB" -f ($length/1MB)
 	}
 }
 
@@ -86,20 +81,7 @@ function Add-Zeroes {
 		[int]$target,
 		[int]$maxval
 	)
-	$tgtlnt = ([string]$target).Length
-	$maxlnt = ([string]$maxval).Length
-
-	if ($tgtlnt -eq $maxlnt) {
-		return ([string]$target)
-	}
-
-	[string]$ret=""
-	for ($i=0; $i -lt ($maxlnt-$tgtlnt); $i++) {
-		$ret += "0"
-	}
-	$ret += ([string]$target)
-
-	return $ret
+	return $target.ToString().PadLeft(([string]$maxval).Length, '0')
 }
 
 function Write-Box {
@@ -125,6 +107,12 @@ function Write-Box {
     }
 
     Write-Host ("+" + "-" * $maxWidth + "--" + "+")  -ForegroundColor $fgcolor
+}
+
+function Go-Up {
+	$pos = $host.UI.RawUI.CursorPosition
+	$pos.Y--
+	$host.UI.RawUI.CursorPosition = $pos
 }
 
 
@@ -421,9 +409,6 @@ function get-chapter {
 
 		$i=0
 
-		# Define the maximum number of concurrent downloads
-		#$maxConcurrentJobs = 10
-
 		# Create an array to hold the download jobs
 		$downloadJobs = @()
 
@@ -463,19 +448,15 @@ function get-chapter {
 	progress-blip -command "cd `"$(Get-Location)/$id`" ; foreach (`$img in `$(ls *.png).name) { magick convert `"`$img`" -quality 90 `"`$img.jpg`" ; remove-item `"`$img`" } ; cd `"..`"" `
 		-pretext "Preparing images... " `
 		-endwithnewline $false
-	
-	$pos = $host.UI.RawUI.CursorPosition
-	$pos.Y--
-	$host.UI.RawUI.CursorPosition = $pos
+
+	Go-Up
 	
 	#write-host "magick `"$(pwd)/$id/*.jpg`" -density 720x `"$(pwd)/$id.pdf`" "
 	progress-blip -command "magick `"$(Get-Location)/$id/*.jpg`" -density 80x -resize ${width}x -compress JPEG `"$(Get-Location)/$id.pdf`" " `
 		-pretext "Converting to PDF... " `
 		-endwithnewline $false
 	
-	$pos = $host.UI.RawUI.CursorPosition
-	$pos.Y--
-	$host.UI.RawUI.CursorPosition = $pos
+	go-up
 	
 	progress-blip -command "cd `"$(Get-Location)`" ; remove-item $id -recurse" `
 		-pretext "Clean up... " `
