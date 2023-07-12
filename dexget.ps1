@@ -398,7 +398,7 @@ function get-chapter {
 			
 			(New-Object System.Net.WebClient).DownloadFile($url, $outputPath)
 			
-			Write-Host "`rDownloaded and saved $outputPath."
+			#Write-Host "`rDownloaded and saved $outputPath."
 		}
 
 		if (-not (test-path "$wd\$id")) {
@@ -416,8 +416,6 @@ function get-chapter {
 			$filename = $(add-zeroes $i $images) + "." + $(Get-FileType $img)
 			$url = "$baseUr/data/$hash/$img"
 			$outputPath = "$wd/$id/$filename"
-
-			write-error "Saving $url to $outputpath"
 			
 			# Start the download job
 			$job = Start-Job -ScriptBlock $scriptBlock -ArgumentList $url, $outputPath, $filesize, $i, $images
@@ -436,9 +434,18 @@ function get-chapter {
 		$downloadJobs | Wait-Job | Out-Null
 	}
 
-	progress-bar -scriptblock $dlscript -size $totalsize -dlfile "$(Get-Location)/$id" `
-		-pretext "" -isdirectory $true -endwithnewline $true `
-		-argumentlist @($id, $baseUr, $hash, $images, $(Get-Location), $imglist)
+	function getdirsize {
+		$TargetDir = "$(Get-Location)\$id"
+		$size = 0
+        Get-ChildItem $TargetDir | ForEach-Object {
+        	$size += $(get-item "$targetdir\$($_.name)").Length
+		}
+        return [int]$size
+	}
+
+	progress-bar -scriptblock $dlscript -size $totalsize -sizeGetter $function:getdirsize `
+               -pretext "" -endwithnewline $true -updateinterval 500 `
+               -argumentlist @($id, $baseUr, $hash, $images, $(Get-Location), $imglist)
 
 	Write-Host "Downloaded and saved $images images."
 	
@@ -536,6 +543,11 @@ try {
 		Set-Location ".."
 	}
 }
+catch {
+	Write-Host "`n`n!! Something bad just happened: " -ForegroundColor Yellow
+	Write-Box "$_" -fgcolor Red
+}
+
 finally {
 	Set-Location $originaldir
 	Write-Host "`nDownloads complete. $_"
