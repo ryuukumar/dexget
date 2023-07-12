@@ -436,6 +436,7 @@ function get-chapter {
 
 	function getdirsize {
 		$TargetDir = "$(Get-Location)\$id"
+		if (-not (Test-Path $TargetDir)) { return 0 }
 		$size = 0
         Get-ChildItem $TargetDir | ForEach-Object {
         	$size += $(get-item "$targetdir\$($_.name)").Length
@@ -444,7 +445,7 @@ function get-chapter {
 	}
 
 	progress-bar -scriptblock $dlscript -size $totalsize -sizeGetter $function:getdirsize `
-               -pretext "" -endwithnewline $true -updateinterval 500 `
+               -pretext "" -endwithnewline $true -updateinterval 200 `
                -argumentlist @($id, $baseUr, $hash, $images, $(Get-Location), $imglist)
 
 	Write-Host "Downloaded and saved $images images."
