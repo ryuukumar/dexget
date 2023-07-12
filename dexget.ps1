@@ -44,7 +44,7 @@ function Remove-IllegalChars([string]$str) {
 }
 
 # This function takes a URL as input, sends an HTTP request to it, and returns the content length (file size) of the requested resource.
-function Web-FileSize ([string]$url) {
+function Get-WebSize ([string]$url) {
 	$HttpWebResponse = $null
 	$HttpWebRequest = [System.Net.HttpWebRequest]::Create($url)
 	try {
@@ -58,7 +58,7 @@ function Web-FileSize ([string]$url) {
 }
 
 # This function takes a filename as input and returns the file extension by extracting it from the input filename.
-function Give-FileType([string]$filename) {
+function Get-FileType([string]$filename) {
 	return $filename.Split('.')[-1]
 }
 
@@ -109,7 +109,7 @@ function Write-Box {
     Write-Host ("+" + "-" * $maxWidth + "--" + "+")  -ForegroundColor $fgcolor
 }
 
-function Go-Up {
+function Move-Up {
 	$pos = $host.UI.RawUI.CursorPosition
 	$pos.Y--
 	$host.UI.RawUI.CursorPosition = $pos
@@ -368,7 +368,7 @@ function get-chapter {
 	$dlscript = {
 		param($id, $baseUr, $hash, $images, $wd, $imglist)
 
-		function Web-FileSize ([string]$url) {
+		function Get-WebSize ([string]$url) {
 			$HttpWebResponse = $null
 			$HttpWebRequest = [System.Net.HttpWebRequest]::Create($url)
 			try {
@@ -381,7 +381,7 @@ function get-chapter {
 			}
 		}
 		
-		function Give-FileType([string]$filename) {
+		function Get-FileType([string]$filename) {
 			$substrs = $filename -split '\.'
 			return $substrs[$substrs.length - 1]
 		}
@@ -414,8 +414,8 @@ function get-chapter {
 
 		foreach ($img in $imglist) {
 			$i++
-			$filesize = Web-FileSize("$baseUr/data/$hash/$img")
-			$filename = $(add-zeroes $i $images) + "." + $(Give-FileType $img)
+			$filesize = Get-WebSize("$baseUr/data/$hash/$img")
+			$filename = $(add-zeroes $i $images) + "." + $(Get-FileType $img)
 			$url = "$baseUr/data/$hash/$img"
 			$outputPath = "$wd/$id/$filename"
 
@@ -449,14 +449,14 @@ function get-chapter {
 		-pretext "Preparing images... " `
 		-endwithnewline $false
 
-	Go-Up
+	Move-Up
 	
 	#write-host "magick `"$(pwd)/$id/*.jpg`" -density 720x `"$(pwd)/$id.pdf`" "
 	progress-blip -command "magick `"$(Get-Location)/$id/*.jpg`" -density 80x -resize ${width}x -compress JPEG `"$(Get-Location)/$id.pdf`" " `
 		-pretext "Converting to PDF... " `
 		-endwithnewline $false
 	
-	go-up
+	Move-Up
 	
 	progress-blip -command "cd `"$(Get-Location)`" ; remove-item $id -recurse" `
 		-pretext "Clean up... " `
