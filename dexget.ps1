@@ -115,6 +115,20 @@ function Move-Up {
 	$host.UI.RawUI.CursorPosition = $pos
 }
 
+function Get-ChpIndex {
+	param (
+		[ref]$chps,
+		[string]$chpnum
+	)
+
+	for ($i=0; $i -lt $chps.value.length; $i++) {
+		if ($chps.value[$i].attributes.chapter -ne $chpnum) {continue}
+		return $i
+	}
+
+	return -1
+}
+
 
 
 
@@ -227,34 +241,6 @@ foreach ($ch in $manga.data) {
 	}
 	$chapters += $ch
 }
-
-function get-chpindex {
-	param (
-		[ref]$chps,
-		[string]$chpnum
-	)
-
-	for ($i=0; $i -lt $chps.value.length; $i++) {
-		if ($chps.value[$i].attributes.chapter -ne $chpnum) {continue}
-		return $i
-	}
-
-	return -1
-}
-
-function get-nextchp {
-	param (
-		[ref]$chps,
-		[string]$id
-	)
-
-	[int]$idx = get-chpindex $chps $id
-	if ($idx -eq $chps.value.length) {
-		return -1
-	}
-	return $chps.value[$idx+1].id
-}
-
 
 Write-Host "Scan results:"
 Write-Host " - Found $($chapters.length) chapters." -ForegroundColor Green
@@ -395,8 +381,7 @@ function get-chapter {
 		}
 		
 		function Get-FileType([string]$filename) {
-			$substrs = $filename -split '\.'
-			return $substrs[$substrs.length - 1]
+			return $filename.Split('.')[-1]
 		}
 		
 		function Add-Zeroes {
