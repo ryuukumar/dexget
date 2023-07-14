@@ -317,6 +317,7 @@ function queue-chapter {
 	$json = $client.DownloadString("https://api.mangadex.org/at-home/server/${id}?forcePort443=false") | ConvertFrom-Json
 
 	$imglist = $json.chapter.data
+	$hash = $json.chapter.hash
 	$imglen = $imglist.length
 
 	$newchap = [PSCustomObject]@{
@@ -326,6 +327,7 @@ function queue-chapter {
 		title = $title
 		completed = 0
 		total = $imglen
+		hash = $hash
 	}
 
 	$chapterqueue.add($newchap)
@@ -402,6 +404,18 @@ try {
 		}
 
 		& $imgdl ([ref]$chapterqueue)
+
+		foreach ($chapter in $chapterqueue) {
+			$outstr = "`nChapter queued for download`n"
+			$outstr += "- Title: $($chapter.title)`n"
+			$outstr += "- Id: $($chapter.id)`n"
+			$outstr += "- Outdir: $($chapter.outdir)`n"
+			$outstr += "- Completion: $($chapter.completed)/$($chapter.total)`n`n"
+			$outstr += "List of image URLs:`n"
+			foreach ($ur in $chapter.images) { $outstr += "$ur`n" }
+			Write-box $outstr -fgcolor Cyan
+			Write-Host ""
+		}
 
 		Set-Location ".."
 	}
