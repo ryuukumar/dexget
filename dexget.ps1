@@ -140,6 +140,7 @@ function Get-ChpIndex {
 
 . "$PSScriptRoot\ProgressBar.ps1"
 . "$PSScriptRoot\ProgressBlip.ps1"
+. "$PSScriptRoot\scripts\imgdl.ps1"
 
 
 
@@ -399,6 +400,8 @@ try {
 			Write-box $outstr -fgcolor Cyan
 			Write-Host ""
 		}
+
+		& $imgdl ([ref]$chapterqueue)
 
 		Set-Location ".."
 	}
