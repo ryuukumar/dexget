@@ -7,7 +7,7 @@
 #
 
 
-$VERSION = '1.1'
+$VERSION = '1.2'
 
 
 
@@ -303,171 +303,31 @@ if ($chpindex -eq -1) {
 
 #  4. FUNCTION DEFINITION FOR GETTING THE CHAPTER
 
-function get-chapter {
+$client = New-Object System.Net.WebClient
+$chapterqueue = [System.Collections.ArrayList]@()
+
+function queue-chapter {
 	param (
-		[string]$id
+		[string]$id,
+		[string]$title,
+		[string]$outdir
 	)
 
-	$client = New-Object System.Net.WebClient
 	$json = $client.DownloadString("https://api.mangadex.org/at-home/server/${id}?forcePort443=false") | ConvertFrom-Json
 
-	$baseUr = "https://uploads.mangadex.org"
-	$hash = $json.chapter.hash
-
 	$imglist = $json.chapter.data
-	$images = $imglist.length
+	$imglen = $imglist.length
 
-	$runspacePool = [RunspaceFactory]::CreateRunspacePool(1, $maxConcurrentJobs)
-	$runspacePool.Open()
-
-	$scriptBlock = {
-		param($url)
-		$HttpWebResponse = $null
-		$HttpWebRequest = [System.Net.HttpWebRequest]::Create($url)
-		try {
-			$HttpWebResponse = $HttpWebRequest.GetResponse()
-			$HttpWebResponse.close()
-			return $HttpWebResponse.ContentLength
-		}
-		catch {
-			$_ | ConvertTo-Json
-		}
+	$newchap = [PSCustomObject]@{
+		images = $imglist
+		id = $id
+		outdir = $outdir
+		title = $title
+		completed = 0
+		total = $imglen
 	}
 
-	write-host "Checking download size... " -NoNewline
-
-	$jobs = @()
-	foreach ($img in $imglist) {
-		$url = "$baseUr/data/$hash/$img"
-		$ps = [PowerShell]::Create()
-		$ps.RunspacePool = $runspacePool
-		$ps.AddScript($scriptBlock).AddArgument($url) | out-null
-		$handle = $ps.BeginInvoke()
-		$jobs += New-Object PSObject -Property @{
-			Handle = $handle
-			PowerShell = $ps
-		}
-	}
-
-	[int]$totalsize = 0
-
-	$jobs | ForEach-Object {
-		$result = $_.PowerShell.EndInvoke($_.Handle)
-		$totalsize += $result[0]
-		$_.PowerShell.Dispose()
-	}
-
-	$runspacePool.Close()
-	$runspacePool.Dispose()
-
-	$sizestr = Format-Filesize($totalsize)
-
-	write-host "going to download $sizestr over $images images."
-
-	$dlscript = {
-		param($id, $baseUr, $hash, $images, $wd, $imglist)
-
-		function Get-WebSize ([string]$url) {
-			$HttpWebResponse = $null
-			$HttpWebRequest = [System.Net.HttpWebRequest]::Create($url)
-			try {
-				$HttpWebResponse = $HttpWebRequest.GetResponse()
-				$HttpWebResponse.close()
-				return $HttpWebResponse.ContentLength
-			}
-			catch {
-				$_ | ConvertTo-Json
-			}
-		}
-		
-		function Get-FileType([string]$filename) {
-			return $filename.Split('.')[-1]
-		}
-		
-		function Add-Zeroes {
-			param (
-				[int]$target,
-				[int]$maxval
-			)
-			return $target.ToString().PadLeft(([string]$maxval).Length, '0')
-		}
-		
-		# Define the script block for the download job
-		$scriptBlock = {
-			param($url, $outputPath, $filesize, $i, $images)
-			
-			(New-Object System.Net.WebClient).DownloadFile($url, $outputPath)
-			
-			#Write-Host "`rDownloaded and saved $outputPath."
-		}
-
-		if (-not (test-path "$wd\$id")) {
-			mkdir "$wd\$id" | out-null
-		}
-
-		$i=0
-
-		# Create an array to hold the download jobs
-		$downloadJobs = @()
-
-		foreach ($img in $imglist) {
-			$i++
-			$filesize = Get-WebSize("$baseUr/data/$hash/$img")
-			$filename = $(add-zeroes $i $images) + "." + $(Get-FileType $img)
-			$url = "$baseUr/data/$hash/$img"
-			$outputPath = "$wd/$id/$filename"
-			
-			# Start the download job
-			$job = Start-Job -ScriptBlock $scriptBlock -ArgumentList $url, $outputPath, $filesize, $i, $images
-			
-			# Add the job to the download jobs array
-			$downloadJobs += $job
-			
-			# If there are already the maximum number of download jobs running, wait for one to complete before starting another
-			if ($downloadJobs.Count -eq $maxConcurrentJobs) {
-				$finishedJob = $downloadJobs | Wait-Job -Any
-				$downloadJobs.Remove($finishedJob)
-			}
-		}
-
-		# Wait for any remaining download jobs to complete
-		$downloadJobs | Wait-Job | Out-Null
-	}
-
-	function getdirsize {
-		$TargetDir = "$(Get-Location)\$id"
-		if (-not (Test-Path $TargetDir)) { return 0 }
-		$size = 0
-        Get-ChildItem $TargetDir | ForEach-Object {
-        	$size += $(get-item "$targetdir\$($_.name)").Length
-		}
-        return [int]$size
-	}
-
-	progress-bar -scriptblock $dlscript -size $totalsize -sizeGetter $function:getdirsize `
-               -pretext "" -endwithnewline $true -updateinterval 200 `
-               -argumentlist @($id, $baseUr, $hash, $images, $(Get-Location), $imglist)
-
-	Write-Host "Downloaded and saved $images images."
-	
-	#write-host "cd `"$(pwd)/$id`" ; foreach (`$img in `$(ls *.png).name) { magick convert `"`$img`" -quality 95 `"`$img.jpg`" ; remove-item `"`$img`" } ; cd `"..`""
-	progress-blip -command "cd `"$(Get-Location)/$id`" ; foreach (`$img in `$(ls *.png).name) { magick convert `"`$img`" -quality 90 `"`$img.jpg`" ; remove-item `"`$img`" } ; cd `"..`"" `
-		-pretext "Preparing images... " `
-		-endwithnewline $false
-
-	Move-Up
-	
-	#write-host "magick `"$(pwd)/$id/*.jpg`" -density 720x `"$(pwd)/$id.pdf`" "
-	progress-blip -command "magick `"$(Get-Location)/$id/*.jpg`" -density 80x -resize ${width}x -compress JPEG `"$(Get-Location)/$id.pdf`" " `
-		-pretext "Converting to PDF... " `
-		-endwithnewline $false
-	
-	Move-Up
-	
-	progress-blip -command "cd `"$(Get-Location)`" ; remove-item $id -recurse" `
-		-pretext "Clean up... " `
-		-endwithnewline $false
-	
+	$chapterqueue.add($newchap)
 }
 
 
@@ -482,26 +342,19 @@ try {
 
 	if (($chpindex) -lt $chapters.length) {
 		if ($dlPolicySet) {
-			if ($singleDl) {
-				$choice = "n"
-			} else {
-				$choice = "y"
-			}
+			if ($singleDl) { $choice = "n" }
+			else { $choice = "y" }
 		} else {
 			$choice = Read-Host "There are $($chapters.length - 1 - $chpindex) more chapters after the given ID. Would you like to download all of them? [Y/n/s]"
 		}
 
-		if (-not $cloudcopy) {
-			$clchoice = Read-Host "Do you want to save a copy of this download to the cloud? [Y/n]"
-		}
+		if (-not $cloudcopy) { $clchoice = Read-Host "Do you want to save a copy of this download to the cloud? [Y/n]" }
 
 		if (-not ($choice -eq "Y" -or $choice -eq "y" -or $choice -eq "S" -or $choice -eq "s")) { 
-			get-chapter $chapters[$chpindex].id
-			rename-item "$($chapters[$chpindex].id).pdf" "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" -Force
-			if ($clchoice -eq "y" -or $clchoice -eq "Y") {
-				Copy-Item -Path "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" "$clouddir\$mangadir"
-			}
-
+			queue-chapter $chapters[$chpindex].id `
+				-title "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" `
+				-outdir "$(Get-Location)\$($chapters[$i].id)"
+			if ($clchoice -eq "y" -or $clchoice -eq "Y") { Copy-Item -Path "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" "$clouddir\$mangadir" }
 			exit
 		}
 
@@ -512,14 +365,10 @@ try {
 				$last = $chapters.length
 			}
 			write-Host "Downloading till chapter $last."
-		} else {
-			[int]$last = $chapters.length
-		}
+		} else { [int]$last = $chapters.length }
 
 		$mangadir = "(Manga) ${mangatitle}"
-		if (!(Test-Path $mangadir)) {
-			mkdir $mangadir | out-null
-		}
+		if (!(Test-Path $mangadir)) { mkdir $mangadir | out-null }
 		Set-Location "$(Get-Location)\${mangadir}"
 
 		write-host ""
@@ -533,12 +382,22 @@ try {
 		}
 		
 		for ($i=$chpindex; $i -lt $last; $i++) {
-			write-box "Chapter $($i + 1) of $($chapters.length)" -fgcolor Cyan
-			get-chapter $chapters[$i].id
-			rename-item "$($chapters[$i].id).pdf" "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" -Force
+			queue-chapter $chapters[$i].id -title "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" -outdir "$(Get-Location)\$($chapters[$i].id)"
 			if ($clchoice -eq "y" -or $clchoice -eq "Y") {
 				Copy-Item -Path "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" "$clouddir\$mangadir"
 			}
+		}
+
+		foreach ($chapter in $chapterqueue) {
+			$outstr = "`nChapter queued for download`n"
+			$outstr += "- Title: $($chapter.title)`n"
+			$outstr += "- Id: $($chapter.id)`n"
+			$outstr += "- Outdir: $($chapter.outdir)`n"
+			$outstr += "- Completion: $($chapter.completed)/$($chapter.total)`n`n"
+			$outstr += "List of image URLs:`n"
+			foreach ($ur in $chapter.images) { $outstr += "$ur`n" }
+			Write-box $outstr -fgcolor Cyan
+			Write-Host ""
 		}
 
 		Set-Location ".."
@@ -553,7 +412,7 @@ finally {
 	Set-Location $originaldir
 	Write-Host "`nDownloads complete. $_"
 
-	exit
+	#exit
 }
 
 
