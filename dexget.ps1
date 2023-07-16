@@ -141,6 +141,7 @@ function Get-ChpIndex {
 . "$PSScriptRoot\ProgressBar.ps1"
 . "$PSScriptRoot\ProgressBlip.ps1"
 . "$PSScriptRoot\scripts\imgdl.ps1"
+. "$PSScriptRoot\scripts\progdisp.ps1"
 
 
 
@@ -407,24 +408,22 @@ try {
 			$outstr += "- Title: $($chapter.title)`n"
 			$outstr += "- Id: $($chapter.id)`n"
 			$outstr += "- Outdir: $($chapter.outdir)`n"
-			$outstr += "- Completion: $($chapter.completed)/$($chapter.total)`n`n"
-			$outstr += "List of image URLs:`n"
-			foreach ($ur in $chapter.images) { $outstr += "$ur`n" }
+			$outstr += "- Completion: $($chapter.completed)/$($chapter.total)`n"
 			Write-box $outstr -fgcolor Cyan
 			Write-Host ""
 		}
 
-		& $imgdl ([ref]$chapterqueue) | Out-Null
+		write-host "`n`n"
+		$imgdljob = Start-ThreadJob -ScriptBlock $imgdl -ArgumentList ([ref]$chapterqueue)
+		& $progdisp ([ref]$chapterqueue)
+		write-host ""
 
 		foreach ($chapter in $chapterqueue) {
-			$outstr = "`nChapter queued for download`n"
+			$outstr = "`nChapter downloaded`n"
 			$outstr += "- Title: $($chapter.title)`n"
-			$outstr += "- Id: $($chapter.id)`n"
 			$outstr += "- Outdir: $($chapter.outdir)`n"
-			$outstr += "- Completion: $($chapter.completed)/$($chapter.total)`n`n"
-			$outstr += "List of image URLs:`n"
-			foreach ($ur in $chapter.images) { $outstr += "$ur`n" }
-			Write-box $outstr -fgcolor Cyan
+			$outstr += "- Completion: $($chapter.completed)/$($chapter.total)`n"
+			Write-box $outstr -fgcolor Green
 			Write-Host ""
 		}
 
