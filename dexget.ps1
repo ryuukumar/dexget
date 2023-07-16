@@ -142,6 +142,7 @@ function Get-ChpIndex {
 . "$PSScriptRoot\ProgressBlip.ps1"
 . "$PSScriptRoot\scripts\imgdl.ps1"
 . "$PSScriptRoot\scripts\imgconv.ps1"
+. "$PSScriptRoot\scripts\pdfconv.ps1"
 . "$PSScriptRoot\scripts\progdisp.ps1"
 
 
@@ -340,6 +341,7 @@ function queue-chapter {
 		total = $imglen
 		hash = $hash
 		toconv = [System.Collections.ArrayList]@()
+		pdfmade = $false
 	}
 
 	$chapterqueue.add($newchap) | Out-Null
@@ -406,34 +408,16 @@ try {
 			}
 		}
 
-		foreach ($chapter in $chapterqueue) {
-			$outstr = "`nChapter queued for download`n"
-			$outstr += "- Title: $($chapter.title)`n"
-			$outstr += "- Id: $($chapter.id)`n"
-			$outstr += "- Outdir: $($chapter.outdir)`n"
-			$outstr += "- Completion: $($chapter.dlcomp)/$($chapter.total)`n"
-			Write-box $outstr -fgcolor Cyan
-			Write-Host ""
-		}
-
 		write-host "`n`n"
 		$imgdljob = Start-ThreadJob -ScriptBlock $imgdl -ArgumentList ([ref]$chapterqueue)
-		
-		#& $imgconv ([ref]$chapterqueue)
 		$imgconvjob = Start-ThreadJob -ScriptBlock $imgconv -ArgumentList ([ref]$chapterqueue)
+		$pdfconvjob = Start-ThreadJob -ScriptBlock $pdfconv -ArgumentList ([ref]$chapterqueue)
 		& $progdisp ([ref]$chapterqueue)
 		write-host ""
 
-		foreach ($chapter in $chapterqueue) {
-			$outstr = "`nChapter downloaded`n"
-			$outstr += "- Title: $($chapter.title)`n"
-			$outstr += "- Outdir: $($chapter.outdir)`n"
-			$outstr += "- Completion: $($chapter.dlcomp)/$($chapter.total)`n"
-			Write-box $outstr -fgcolor Green
-			Write-Host ""
-		}
-
 		Set-Location ".."
+
+		Write-Box "All download tasks completed." -fgcolor Green
 	}
 }
 catch {
@@ -443,7 +427,7 @@ catch {
 
 finally {
 	Set-Location $originaldir
-	Write-Host "`nDownloads complete. $_"
+	Write-Host "`Exiting. $_"
 
 	#exit
 }

@@ -57,13 +57,12 @@
 
     $imglist | ForEach-Object -throttlelimit $maxConcurrentJobs -Parallel {
         (New-Object System.Net.WebClient).DownloadFile($_.img, $_.out)
-        ($using:chapterqueue).value[$_.index].dlcomp++
-
         $toconvobj = [PSCustomObject]@{
             src = $_.out
             dest = $_.dst
             index = $_.index
         }
         ($using:chapterqueue).value[$_.index].toconv.add($toconvobj)
+        ($using:chapterqueue).value[$_.index].dlcomp++
     }
 }

@@ -26,14 +26,15 @@ $progdisp = {
 
     $imgdlprog = 0
     $imgconvprog = 0
-    $pdfprog = 1
+    $pdfprog = 0
 
     $imgdltotal = 0
     $imgconvtotal = 0
-    $pdftotal = 1
+    $pdftotal = 0
 
     $chapterqueue.value | foreach-object {
         $imgdltotal += $_.total
+        $pdftotal++
     }
     $imgconvtotal = $imgdltotal
 
@@ -51,6 +52,10 @@ $progdisp = {
         }
 
         # update pdf conversion progress
+        $pdfprog = 0
+        $chapterqueue.value | foreach-object {
+            $pdfprog += [int]($_.pdfmade ? 1 : 0)
+        }
 
         # display progress
         $pos = $host.UI.RawUI.CursorPosition
