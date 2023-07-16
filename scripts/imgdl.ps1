@@ -43,6 +43,7 @@
             $newimg = [PSCustomObject]@{
                 img = "$baseUr/data/$($chapter.hash)/$img"
                 out = "$($chapter.outdir)\$(Add-Zeroes $i $chapter.total).png"
+                dst = "$($chapter.outdir)\$(Add-Zeroes $i $chapter.total).jpg"
                 index = $j
             }
             $imglist.Add($newimg)
@@ -56,7 +57,13 @@
 
     $imglist | ForEach-Object -throttlelimit $maxConcurrentJobs -Parallel {
         (New-Object System.Net.WebClient).DownloadFile($_.img, $_.out)
-        ($using:chapterqueue).value[$_.index].completed++
-        write-host "Finished $($_.out) [$(($using:chapterqueue).value[$_.index].completed)]"
+        ($using:chapterqueue).value[$_.index].dlcomp++
+
+        $toconvobj = [PSCustomObject]@{
+            src = $_.out
+            dest = $_.dst
+            index = $_.index
+        }
+        ($using:chapterqueue).value[$_.index].toconv.add($toconvobj)
     }
 }

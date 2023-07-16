@@ -25,25 +25,30 @@ $progdisp = {
     }
 
     $imgdlprog = 0
-    $imgconvprog = 1
+    $imgconvprog = 0
     $pdfprog = 1
 
     $imgdltotal = 0
-    $imgconvtotal = 1
+    $imgconvtotal = 0
     $pdftotal = 1
 
     $chapterqueue.value | foreach-object {
         $imgdltotal += $_.total
     }
+    $imgconvtotal = $imgdltotal
 
     while ($true) {
         # update imgdl progress
         $imgdlprog = 0
         $chapterqueue.value | foreach-object {
-            $imgdlprog += $_.completed
+            $imgdlprog += $_.dlcomp
         }
 
         # update img conversion progress
+        $imgconvprog = 0
+        $chapterqueue.value | foreach-object {
+            $imgconvprog += $_.convcomp
+        }
 
         # update pdf conversion progress
 

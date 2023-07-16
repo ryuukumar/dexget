@@ -141,6 +141,7 @@ function Get-ChpIndex {
 . "$PSScriptRoot\ProgressBar.ps1"
 . "$PSScriptRoot\ProgressBlip.ps1"
 . "$PSScriptRoot\scripts\imgdl.ps1"
+. "$PSScriptRoot\scripts\imgconv.ps1"
 . "$PSScriptRoot\scripts\progdisp.ps1"
 
 
@@ -334,9 +335,11 @@ function queue-chapter {
 		id = $id
 		outdir = $outdir
 		title = $title
-		completed = 0
+		dlcomp = 0
+		convcomp = 0
 		total = $imglen
 		hash = $hash
+		toconv = [System.Collections.ArrayList]@()
 	}
 
 	$chapterqueue.add($newchap) | Out-Null
@@ -408,13 +411,16 @@ try {
 			$outstr += "- Title: $($chapter.title)`n"
 			$outstr += "- Id: $($chapter.id)`n"
 			$outstr += "- Outdir: $($chapter.outdir)`n"
-			$outstr += "- Completion: $($chapter.completed)/$($chapter.total)`n"
+			$outstr += "- Completion: $($chapter.dlcomp)/$($chapter.total)`n"
 			Write-box $outstr -fgcolor Cyan
 			Write-Host ""
 		}
 
 		write-host "`n`n"
 		$imgdljob = Start-ThreadJob -ScriptBlock $imgdl -ArgumentList ([ref]$chapterqueue)
+		
+		#& $imgconv ([ref]$chapterqueue)
+		$imgconvjob = Start-ThreadJob -ScriptBlock $imgconv -ArgumentList ([ref]$chapterqueue)
 		& $progdisp ([ref]$chapterqueue)
 		write-host ""
 
@@ -422,7 +428,7 @@ try {
 			$outstr = "`nChapter downloaded`n"
 			$outstr += "- Title: $($chapter.title)`n"
 			$outstr += "- Outdir: $($chapter.outdir)`n"
-			$outstr += "- Completion: $($chapter.completed)/$($chapter.total)`n"
+			$outstr += "- Completion: $($chapter.dlcomp)/$($chapter.total)`n"
 			Write-box $outstr -fgcolor Green
 			Write-Host ""
 		}
