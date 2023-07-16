@@ -62,7 +62,7 @@
     $scriptBlock = {
         param($url, $outputPath, $complete)
         (New-Object System.Net.WebClient).DownloadFile($url, $outputPath)
-        $complete.value++
+        & { $complete.value++ }
     }
 
     # Create an array to hold the download jobs

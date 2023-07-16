@@ -330,7 +330,7 @@ function queue-chapter {
 		hash = $hash
 	}
 
-	$chapterqueue.add($newchap)
+	$chapterqueue.add($newchap) | Out-Null
 }
 
 
@@ -354,40 +354,43 @@ try {
 		if (-not $cloudcopy) { $clchoice = Read-Host "Do you want to save a copy of this download to the cloud? [Y/n]" }
 
 		if (-not ($choice -eq "Y" -or $choice -eq "y" -or $choice -eq "S" -or $choice -eq "s")) { 
+			Write-Host "$chpindex`n$($chapters[$chpindex].id)`n$($chapters[$chpindex].attributes.chapter)"
 			queue-chapter $chapters[$chpindex].id `
 				-title "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" `
-				-outdir "$(Get-Location)\$($chapters[$i].id)"
+				-outdir "$(Get-Location)\$($chapters[$chpindex].id)"
 			if ($clchoice -eq "y" -or $clchoice -eq "Y") { Copy-Item -Path "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" "$clouddir\$mangadir" }
-			exit
+			#exit
 		}
 
-		if ($choice -eq "S" -or $choice -eq "s") {
-			[int]$last = Read-Host "Number of chapters to download"
-			$last += $chpindex
-			if ($last -ge $chapters.length) {
-				$last = $chapters.length
-			}
-			write-Host "Downloading till chapter $last."
-		} else { [int]$last = $chapters.length }
+		else {
+			if ($choice -eq "S" -or $choice -eq "s") {
+				[int]$last = Read-Host "Number of chapters to download"
+				$last += $chpindex
+				if ($last -ge $chapters.length) {
+					$last = $chapters.length
+				}
+				write-Host "Downloading till chapter $last."
+			} else { [int]$last = $chapters.length }
 
-		$mangadir = "(Manga) ${mangatitle}"
-		if (!(Test-Path $mangadir)) { mkdir $mangadir | out-null }
-		Set-Location "$(Get-Location)\${mangadir}"
+			$mangadir = "(Manga) ${mangatitle}"
+			if (!(Test-Path $mangadir)) { mkdir $mangadir | out-null }
+			Set-Location "$(Get-Location)\${mangadir}"
 
-		write-host ""
-		Write-Box "Starting $($last - $chpindex) download tasks." -fgcolor Blue
-		write-host ""
+			write-host ""
+			Write-Box "Starting $($last - $chpindex) download tasks." -fgcolor Blue
+			write-host ""
 
-		if ($clchoice -eq "y" -or $clchoice -eq "Y") {
-			if (!(Test-Path "$clouddir\$mangadir")) {
-				mkdir "$clouddir\$mangadir" | out-null
-			}
-		}
-		
-		for ($i=$chpindex; $i -lt $last; $i++) {
-			queue-chapter $chapters[$i].id -title "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" -outdir "$(Get-Location)\$($chapters[$i].id)"
 			if ($clchoice -eq "y" -or $clchoice -eq "Y") {
-				Copy-Item -Path "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" "$clouddir\$mangadir"
+				if (!(Test-Path "$clouddir\$mangadir")) {
+					mkdir "$clouddir\$mangadir" | out-null
+				}
+			}
+			
+			for ($i=$chpindex; $i -lt $last; $i++) {
+				queue-chapter $chapters[$i].id -title "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" -outdir "$(Get-Location)\$($chapters[$i].id)"
+				if ($clchoice -eq "y" -or $clchoice -eq "Y") {
+					Copy-Item -Path "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" "$clouddir\$mangadir"
+				}
 			}
 		}
 
@@ -403,7 +406,7 @@ try {
 			Write-Host ""
 		}
 
-		& $imgdl ([ref]$chapterqueue)
+		& $imgdl ([ref]$chapterqueue) | Out-Null
 
 		foreach ($chapter in $chapterqueue) {
 			$outstr = "`nChapter queued for download`n"
