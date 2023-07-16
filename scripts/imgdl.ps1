@@ -72,7 +72,7 @@
     foreach ($img in $imglist) {
         # Start the download job
         $job = Start-Job -ScriptBlock $scriptBlock -ArgumentList $img.img, $img.out, $img.counter
-        write-host "Started $($img.img) -> $($img.out)"
+        write-host "Started $($img.out) [$($img.counter.value) : $($img.counter)]"
         
         # Add the job to the download jobs array
         $downloadJobs.add($job)
