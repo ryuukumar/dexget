@@ -151,6 +151,14 @@ function Get-ChpIndex {
 #---------------------------------------#
 
 
+#  00. ASSERT POWERSHELL 7
+
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+	write-box "`nFATAL ERROR!!!`n`nThis script is running on Powershell $($PSVersionTable.PSVersion.Major).`nDexGet requires Powershell 7 or higher to run!`nPlease refer Powershell 7 and then run this script.`n" -fgcolor Red -center $true
+	exit
+}
+
+
 #  0. GET ID
 
 Write-Host ""

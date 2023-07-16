@@ -43,7 +43,7 @@
             $newimg = [PSCustomObject]@{
                 img = "$baseUr/data/$($chapter.hash)/$img"
                 out = "$($chapter.outdir)\$(Add-Zeroes $i $chapter.total).png"
-                counter = ([ref]($chapterqueue.Value[$j].completed))
+                index = $j
             }
             $imglist.Add($newimg)
             $i++
@@ -54,38 +54,9 @@
         $j++
     }
 
-#    foreach ($img in $imglist) {
-#        write-host "$($img.img) -> $($img.out)"
-#    }
-    
-    # Define the script block for the download job
-    $scriptBlock = {
-        param($url, $outputPath, $complete)
-        (New-Object System.Net.WebClient).DownloadFile($url, $outputPath)
-        & { $complete.value++ }
+    $imglist | ForEach-Object -throttlelimit $maxConcurrentJobs -Parallel {
+        (New-Object System.Net.WebClient).DownloadFile($_.img, $_.out)
+        ($using:chapterqueue).value[$_.index].completed++
+        write-host "Finished $($_.out) [$(($using:chapterqueue).value[$_.index].completed)]"
     }
-
-    # Create an array to hold the download jobs
-    $downloadJobs = [System.Collections.ArrayList]@()
-
-    # Downloads each image from imglist
-    foreach ($img in $imglist) {
-        # Start the download job
-        $job = Start-Job -ScriptBlock $scriptBlock -ArgumentList $img.img, $img.out, $img.counter
-        write-host "Started $($img.out) [$($img.counter.value) : $($img.counter)]"
-        
-        # Add the job to the download jobs array
-        $downloadJobs.add($job)
-        
-        # If there are already the maximum number of download jobs running, wait for one to complete before starting another
-        if ($downloadJobs.Count -eq $maxConcurrentJobs) {
-            $finishedJob = $downloadJobs | Wait-Job -Any
-            $downloadJobs.Remove($finishedJob)
-        }
-    }
-
-    # Wait for any remaining download jobs to complete
-    $downloadJobs | Wait-Job | Out-Null
-
-    write-host "Downloads complete."
 }
