@@ -3,7 +3,8 @@
 
 $pdfconv = {
     param (
-        [ref]$chapterqueue
+        [ref]$chapterqueue,
+        [int]$width
     )
 
     while ($true) {
@@ -31,7 +32,7 @@ $pdfconv = {
 
         # Convert images to pdf
         $pdfc | ForEach-Object {
-            magick "$($_.src)/*.jpg" -density 80x -resize "$($width)x" -compress JPEG "$($_.dest)"
+            Invoke-Expression "magick `"$($_.src)/*.jpg`" -density 80x -compress JPEG `"$($_.dest)`""
             remove-item "$($_.src)" -Recurse
         }
 

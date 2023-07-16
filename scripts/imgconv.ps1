@@ -3,7 +3,8 @@
 
 [scriptblock]$imgconv = {
     param (
-        [ref]$chapterqueue
+        [ref]$chapterqueue,
+        [int]$width
     )
 
     while ($true) {
@@ -31,7 +32,7 @@
             write-host "Found $($imgconv.length) images to convert"
         }
         $imgconv | ForEach-Object {
-            magick convert "$($_.src)" -quality 90 "$($_.dest)"
+            Invoke-Expression "magick convert `"$($_.src)`" -quality 90 -resize $($width)x `"$($_.dest)`""
             $chapterqueue.Value[$_.index].convcomp++
             remove-item "$($_.src)"
         }
