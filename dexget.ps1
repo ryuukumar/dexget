@@ -347,6 +347,15 @@ function queue-chapter {
 	$chapterqueue.add($newchap) | Out-Null
 }
 
+function download-queue {
+	write-host "`n`n"
+	$imgdljob = Start-ThreadJob -ScriptBlock $imgdl -ArgumentList ([ref]$chapterqueue)
+	$imgconvjob = Start-ThreadJob -ScriptBlock $imgconv -ArgumentList ([ref]$chapterqueue), $width
+	$pdfconvjob = Start-ThreadJob -ScriptBlock $pdfconv -ArgumentList ([ref]$chapterqueue), $width
+	& $progdisp ([ref]$chapterqueue)
+	write-host ""
+}
+
 
 #  5. GET THE ACTUAL CHAPTER
 
@@ -372,8 +381,12 @@ try {
 			queue-chapter $chapters[$chpindex].id `
 				-title "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" `
 				-outdir "$(Get-Location)\$($chapters[$chpindex].id)"
-			if ($clchoice -eq "y" -or $clchoice -eq "Y") { Copy-Item -Path "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" "$clouddir\$mangadir" }
-			#exit
+			
+			write-host ""
+			Write-Box "Starting 1 download task." -fgcolor Blue
+			write-host ""
+	
+			download-queue
 		}
 
 		else {
@@ -391,7 +404,7 @@ try {
 			Set-Location "$(Get-Location)\${mangadir}"
 
 			write-host ""
-			Write-Box "Starting $($last - $chpindex) download tasks." -fgcolor Blue
+			Write-Box "Queueing $($last - $chpindex) download tasks." -fgcolor Blue
 			write-host ""
 
 			if ($clchoice -eq "y" -or $clchoice -eq "Y") {
@@ -402,18 +415,29 @@ try {
 			
 			for ($i=$chpindex; $i -lt $last; $i++) {
 				queue-chapter $chapters[$i].id -title "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" -outdir "$(Get-Location)\$($chapters[$i].id)"
-				if ($clchoice -eq "y" -or $clchoice -eq "Y") {
-					Copy-Item -Path "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" "$clouddir\$mangadir"
+				write-host "Queued chapter $($chapters[$i].attributes.chapter) ($($i-$chpindex+1))    `r" -NoNewline
+				if (((($i-$chpindex) / 20) -eq [int](($i-$chpindex) / 20)) -and $i -ne $chpindex) {
+					$startdate = (Get-Date)
+					download-queue
+					$chapterqueue = [System.Collections.ArrayList]@()
+					$Enddate = (Get-Date)
+					$diff = New-TimeSpan -Start $startdate -End $Enddate 
+					if ($diff.seconds -lt 60) {
+						$secs = (60-$diff.seconds)
+						for ($j = $secs; $j -gt 0; $j--) {
+							write-host "Pausing for $(60-$diff.seconds) seconds to avoid 429 error. ($j left) `r" -NoNewline
+							start-sleep -seconds 1
+						}
+						write-host $(" " * ([int]$($Host.UI.RawUI.WindowSize.Width))) -NoNewline
+						write-host "`r" -NoNewline
+					}
 				}
 			}
+			if ($chapterqueue.length.length -ge 1) {
+				download-queue
+			}
+			Write-Host ""
 		}
-
-		write-host "`n`n"
-		$imgdljob = Start-ThreadJob -ScriptBlock $imgdl -ArgumentList ([ref]$chapterqueue)
-		$imgconvjob = Start-ThreadJob -ScriptBlock $imgconv -ArgumentList ([ref]$chapterqueue), $width
-		$pdfconvjob = Start-ThreadJob -ScriptBlock $pdfconv -ArgumentList ([ref]$chapterqueue), $width
-		& $progdisp ([ref]$chapterqueue)
-		write-host ""
 
 		Set-Location ".."
 
@@ -427,7 +451,7 @@ catch {
 
 finally {
 	Set-Location $originaldir
-	Write-Host "`Exiting. $_"
+	Write-Host "`nExiting. $_"
 
 	#exit
 }
