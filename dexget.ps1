@@ -138,8 +138,6 @@ function Get-ChpIndex {
 #---------------------------------------#
 
 
-. "$PSScriptRoot\ProgressBar.ps1"
-. "$PSScriptRoot\ProgressBlip.ps1"
 . "$PSScriptRoot\scripts\imgdl.ps1"
 . "$PSScriptRoot\scripts\imgconv.ps1"
 . "$PSScriptRoot\scripts\pdfconv.ps1"
