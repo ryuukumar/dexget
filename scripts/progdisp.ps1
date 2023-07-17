@@ -10,10 +10,11 @@ $progdisp = {
         param (
             [double]$part,
             [double]$total,
-            [string]$pre=""
+            [string]$pre="",
+            [int]$postlen=10
         )
 
-        $progbarlength = ([int]$($Host.UI.RawUI.WindowSize.Width)) - ($pre.length + ([string]$total).length * 2 + 12)
+        $progbarlength = ([int]$($Host.UI.RawUI.WindowSize.Width)) - ($pre.length + $postlen + 7)
 
         $fill = $progbarlength * [double]($part/$total)
 
@@ -51,6 +52,9 @@ $progdisp = {
             $imgconvprog += $_.convcomp
         }
 
+        ### patch up dl lagging behind conv due to parallelization (fuck you ps)
+        if ($imgdlprog -lt $imgconvprog) { $imgdlprog = $imgconvprog }
+
         # update pdf conversion progress
         $pdfprog = 0
         $chapterqueue.value | foreach-object {
@@ -62,9 +66,9 @@ $progdisp = {
 	    $pos.Y -= 3
 	    $host.UI.RawUI.CursorPosition = $pos
 
-        show-progress $imgdlprog    $imgdltotal     "Imgdl   : "
-        show-progress $imgconvprog  $imgconvtotal   "Imgconv : "
-        show-progress $pdfprog      $pdftotal       "Pdfconv : "
+        show-progress $imgdlprog    $imgdltotal     "Imgdl   : "    $(([string]$imgdltotal).length * 2 + 3)
+        show-progress $imgconvprog  $imgconvtotal   "Imgconv : "    $(([string]$imgdltotal).length * 2 + 3)
+        show-progress $pdfprog      $pdftotal       "Pdfconv : "    $(([string]$imgdltotal).length * 2 + 3)
 
         # break condition
         if ($imgdlprog -eq $imgdltotal -and $imgconvprog -eq $imgconvtotal -and $pdfprog -eq $pdftotal) { break }
