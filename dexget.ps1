@@ -166,14 +166,16 @@ Write-Host ""
 Write-Box "DexGet v$VERSION`n@ryuukumar on GitHub`nhttps://github.com/ryuukumar/dexget" -center $true
 Write-Host ""
 
-[string]$url=""
+[string]$inputstr=""
 [bool]$cloudcopy=$false
 
 if ($args[0]) {
-	$url = $args[0]
+	$inputstr = $args[0]
 } else {
-	$url = Read-Host "Enter MangaDex title ID"
+	$inputstr = Read-Host "Enter MangaDex title ID"
 }
+
+$url = ([regex]::Matches($inputstr, '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})'))[0]
 
 $dlPolicySet = $false
 $singleDl = $false
@@ -320,7 +322,8 @@ function queue-chapter {
 	param (
 		[string]$id,
 		[string]$title,
-		[string]$outdir
+		[string]$outdir,
+		[string]$cloudd
 	)
 
 	$json = $client.DownloadString("https://api.mangadex.org/at-home/server/${id}?forcePort443=false") | ConvertFrom-Json
@@ -340,6 +343,7 @@ function queue-chapter {
 		hash = $hash
 		toconv = [System.Collections.ArrayList]@()
 		pdfmade = $false
+		clouddir = $cloudd
 	}
 
 	$chapterqueue.add($newchap) | Out-Null
@@ -378,7 +382,8 @@ try {
 			Write-Host "$chpindex`n$($chapters[$chpindex].id)`n$($chapters[$chpindex].attributes.chapter)"
 			queue-chapter $chapters[$chpindex].id `
 				-title "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" `
-				-outdir "$(Get-Location)\$($chapters[$chpindex].id)"
+				-outdir "$(Get-Location)\$($chapters[$chpindex].id)" `
+				-cloudd (($clchoice -eq 'y' -or $clchoice -eq 'Y') ? "$clouddir" : 0)
 			
 			write-host ""
 			Write-Box "Starting 1 download task." -fgcolor Blue
@@ -412,7 +417,12 @@ try {
 			}
 			
 			for ($i=$chpindex; $i -lt $last; $i++) {
-				queue-chapter $chapters[$i].id -title "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" -outdir "$(Get-Location)\$($chapters[$i].id)"
+				queue-chapter $chapters[$i].id `
+					-title "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" `
+					-outdir "$(Get-Location)\$($chapters[$i].id)" `
+					-cloudd (($clchoice -eq 'y' -or $clchoice -eq 'Y') ? "$clouddir\$mangadir" : 0)
+				if (($clchoice -eq 'y' -or $clchoice -eq 'Y') -and -not (test-path "$clouddir\$mangadir"))
+				{ mkdir "$clouddir\$mangadir" | out-null }
 				write-host "Queued chapter $($chapters[$i].attributes.chapter) ($($i-$chpindex+1))    `r" -NoNewline
 				if (((($i-$chpindex) / 20) -eq [int](($i-$chpindex) / 20)) -and $i -ne $chpindex) {
 					$startdate = (Get-Date)

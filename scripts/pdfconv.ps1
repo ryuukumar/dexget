@@ -20,6 +20,7 @@ $pdfconv = {
             $pdfobj = [PSCustomObject]@{
                 src = "$($chapterqueue.value[$i].outdir)"
                 dest = "$($chapterqueue.value[$i].outdir)/../$($chapterqueue.value[$i].title)"
+                cloud = (($chapterqueue.value[$i].clouddir -ne 0) ? "$($chapterqueue.value[$i].clouddir)" : 0)
             }
             $pdfc.add($pdfobj)
             $chapterqueue.value[$i].pdfmade = $true
@@ -33,6 +34,7 @@ $pdfconv = {
         # Convert images to pdf
         $pdfc | ForEach-Object {
             Invoke-Expression "magick `"$($_.src)/*.jpg`" -density 80x -compress JPEG `"$($_.dest)`""
+            if ($_.cloud -ne 0) { Copy-Item "$($_.dest)" "$($_.cloud)" }
             remove-item "$($_.src)" -Recurse
         }
 
