@@ -4,10 +4,10 @@ Script to pull manga off of MangaDex
 To run, go to the folder which contains DexGet and type:
 
 ```
-./dexget.ps1 <manga-id>
+./dexget.ps1 <manga-link>
 ```
 
-The manga ID is given in the URL. This is a manga ID: 32d76d19-8a05-4db0-9fc2-e0b0648fe9d0
+Make sure that the manga link you paste contains the manga ID! This is a manga ID: 32d76d19-8a05-4db0-9fc2-e0b0648fe9d0
 
 ## What's new?
 
