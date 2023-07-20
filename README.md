@@ -16,7 +16,7 @@ v1.2 introduces batch downloading - where chapters are downloaded all together i
 
 Downloads of more than 20 chapters in a go may experience slower speeds as downloads are done in batches of 20 (above 20, it seems like you may get a 429 error from mangadex at any random point in time).
 
-Additionally, a slight change in the processing of downloads may lead to PDFs upto 5% smaller in size (on personal tests) and more consistency in the PDFs (it is my personal observation that some PDFs have varying width even though I intend for them to all have the same width).
+Additionally, a slight change in the processing of downloads may lead to PDFs upto 40% smaller in size (on personal tests) and more consistency in the PDFs (it is my personal observation that some PDFs have varying width even though I intend for them to all have the same width).
 
 ### v1.1
 v1.1 introduces a more intelligent chapter selection process, which can also look at previous download progress. The script has been patched up to look more aesthetically pleasing and colorful.
