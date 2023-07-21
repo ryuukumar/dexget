@@ -160,14 +160,13 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 }
 
 
-#  0. GET ID
+#  0. GET ID AND PARSE ARGUMENTS
 
 Write-Host ""
 Write-Box "DexGet v$VERSION`n@ryuukumar on GitHub`nhttps://github.com/ryuukumar/dexget" -center $true
 Write-Host ""
 
 [string]$inputstr=""
-[bool]$cloudcopy=$false
 
 if ($args[0]) {
 	$inputstr = $args[0]
@@ -177,13 +176,27 @@ if ($args[0]) {
 
 $url = ([regex]::Matches($inputstr, '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})'))[0]
 
-$dlPolicySet = $false
-$singleDl = $false
-if ($args[1]) {
-	if (-not ($args[1] -eq "Y" -or $args[1] -eq "y")) {
-		$singleDl = $true
-		$dlPolicySet = $true
+$argsettings = [PSCustomObject]@{
+	continue = $false
+	cloud = $false
+	all = $false
+}
+
+$i=0
+while ($true) {
+	if ($args[$i]) {
+		if ($args[$i] -eq "--continue" -or $args[$i] -eq "-c") {
+			$argsettings.continue = $true
+		}
+		if ($args[$i] -eq "--cloud" -or $args[$i] -eq "-C") {
+			$argsettings.cloud = $true
+		}
+		if ($args[$i] -eq "--all" -or $args[$i] -eq "-a") {
+			$argsettings.all = $true
+		}
 	}
+	else { break }
+	$i++
 }
 
 
@@ -279,7 +292,9 @@ if (test-path "$savedir\(Manga) ${mangatitle}") {
 	$chindex = get-chpindex ([ref]$chapters) $lastch
 
 	if ($chindex -eq $chapters.length - 1) {
-		$redown = Read-Host "The offline copy of the manga is up to date. Would you still like to proceed? [Y/n]"
+		$redown = ($argsettings.continue `
+						? 'n' `
+						: (Read-Host "The offline copy of the manga is up to date. Would you still like to proceed? [Y/n]"))
 		if ($redown -eq 'Y' -or $redown -eq 'y') {
 			$chpnum = read-host "Start from chapter"
 			$chpindex = get-chpindex ([ref]$chapters) $chpnum
@@ -291,7 +306,9 @@ if (test-path "$savedir\(Manga) ${mangatitle}") {
 	}
 
 	else {
-		$cont = Read-Host "This manga was previously downloaded till chapter $lastch. Do you wish to continue? [Y/n]"
+		$cont = ($argsettings.continue `
+					? 'y' `
+					: (Read-Host "This manga was previously downloaded till chapter $lastch. Do you wish to continue? [Y/n]"))
 		if ($cont -eq 'y' -or $cont -eq 'Y') {
 			$chpindex = $chindex+1
 			$chpnum = $lastch
@@ -369,14 +386,13 @@ try {
 	Set-Location $savedir
 
 	if (($chpindex) -lt $chapters.length) {
-		if ($dlPolicySet) {
-			if ($singleDl) { $choice = "n" }
-			else { $choice = "y" }
-		} else {
-			$choice = Read-Host "There are $($chapters.length - 1 - $chpindex) more chapters after the given ID. Would you like to download all of them? [Y/n/s]"
-		}
+		$choice = ($argsettings.all `
+			? 'y' `
+			: (Read-Host "There are $($chapters.length - 1 - $chpindex) more chapters after the given ID. Would you like to download all of them? [Y/n/s]"))
 
-		if (-not $cloudcopy) { $clchoice = Read-Host "Do you want to save a copy of this download to the cloud? [Y/n]" }
+		$clchoice = ($argsettings.cloud `
+			? 'y' `
+			: (Read-Host "Do you want to save a copy of this download to the cloud? [Y/n]"))
 
 		if (-not ($choice -eq "Y" -or $choice -eq "y" -or $choice -eq "S" -or $choice -eq "s")) { 
 			Write-Host "$chpindex`n$($chapters[$chpindex].id)`n$($chapters[$chpindex].attributes.chapter)"
