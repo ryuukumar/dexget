@@ -270,7 +270,7 @@ if (test-path "$savedir\(Manga) ${mangatitle}") {
 	$files = $(Get-ChildItem "$savedir\(Manga) ${mangatitle}")
 	$filenos = @()
 
-	foreach ($file in $files) {
+	foreach ($file in $files.name) {
 		[double]$chnum = (($file -split "\)")[0]) -replace '[^0-9.]',''
 		$filenos += $chnum
 	}
