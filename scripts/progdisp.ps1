@@ -52,9 +52,6 @@ $progdisp = {
             $imgconvprog += $_.convcomp
         }
 
-        ### patch up dl lagging behind conv due to parallelization (fuck you ps)
-        if ($imgdlprog -lt $imgconvprog) { $imgdlprog = $imgconvprog }
-
         # update pdf conversion progress
         $pdfprog = 0
         $chapterqueue.value | foreach-object {

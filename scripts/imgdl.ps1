@@ -55,6 +55,8 @@
         $j++
     }
 
+    $mutex = New-Object System.Threading.Mutex($false, 'Global\MyMutex')
+
     $imglist | ForEach-Object -throttlelimit $maxConcurrentJobs -Parallel {
         (New-Object System.Net.WebClient).DownloadFile($_.img, $_.out)
         $toconvobj = [PSCustomObject]@{
@@ -62,7 +64,14 @@
             dest = $_.dst
             index = $_.index
         }
-        ($using:chapterqueue).value[$_.index].toconv.add($toconvobj)
-        ($using:chapterqueue).value[$_.index].dlcomp++
+        
+        $mutex.WaitOne() | Out-Null
+        try {
+            ($using:chapterqueue).value[$_.index].toconv.add($toconvobj)
+            ($using:chapterqueue).value[$_.index].dlcomp++
+        }
+        finally {
+            $mutex.ReleaseMutex()
+        }
     }
 }
