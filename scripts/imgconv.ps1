@@ -32,7 +32,7 @@
             write-host "Found $($imgconv.length) images to convert"
         }
         $imgconv | ForEach-Object {
-            Invoke-Expression "magick convert `"$($_.src)`" -quality 90 -resize $($width)x `"$($_.dest)`""
+            Invoke-Expression "magick convert `"$($_.src)[0]`" -quality 90 -resize $($width)x `"$($_.dest)`""
             $chapterqueue.Value[$_.index].convcomp++
             remove-item "$($_.src)"
         }
