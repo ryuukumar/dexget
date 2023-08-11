@@ -446,10 +446,10 @@ try {
 					$chapterqueue = [System.Collections.ArrayList]@()
 					$Enddate = (Get-Date)
 					$diff = New-TimeSpan -Start $startdate -End $Enddate 
-					if ($diff.seconds -lt 60) {
-						$secs = (60-$diff.seconds)
+					if ($diff.totalseconds -lt 60) {
+						[int]$secs = (60-$diff.totalseconds)
 						for ($j = $secs; $j -gt 0; $j--) {
-							write-host "Pausing for $(60-$diff.seconds) seconds to avoid 429 error. ($j left) `r" -NoNewline
+							write-host "Pausing for $secs seconds to avoid 429 error. ($j left) `r" -NoNewline
 							start-sleep -seconds 1
 						}
 						write-host $(" " * ([int]$($Host.UI.RawUI.WindowSize.Width))) -NoNewline
