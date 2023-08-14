@@ -256,6 +256,7 @@ if($mangatitle.length -gt 30) {
 }
 
 $chapters = @()
+[double]$avglen = 0
 
 foreach ($ch in $manga.data) {
 	if ($ch.type -ne "chapter") {
@@ -265,10 +266,14 @@ foreach ($ch in $manga.data) {
 		continue
 	}
 	$chapters += $ch
+	$avglen += $ch.attributes.pages
 }
+
+$avglen = $avglen / $chapters.length
 
 Write-Host "Scan results:"
 Write-Host " - Found $($chapters.length) chapters." -ForegroundColor Green
+Write-Host " - About $(`"{0:n1}`" -f $avglen) pages per chapter." -ForegroundColor Green
 Write-Host " - First chapter number: $($chapters[0].attributes.chapter)" -ForegroundColor Green
 
 $chpindex = 0
