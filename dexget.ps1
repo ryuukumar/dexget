@@ -217,7 +217,8 @@ try {
 }
 catch {
 	write-host "`nFATAL ERROR!`n" -ForegroundColor red
-	Write-Host "Something went wrong while getting the manga metadata. You can try the following:`n - Verify that this is the correct URL:`n`n`thttps://mangadex.org/title/${url}/`n`n - Check your internet connection.`n - Make sure there is no firewall blocking PowerShell.`n - If this doesn't fix it, report a bug."
+	write-host "Something went wrong while getting the manga metadata. You can try the following:`n - Verify that this is the correct URL:`n`n`thttps://mangadex.org/title/${url}/`n`n - Check your internet connection.`n - Make sure there is no firewall blocking PowerShell.`n - If this doesn't fix it, report a bug."
+	write-host "`nTechnical details:`n$_" -ForegroundColor Yellow
 	exit
 }
 
