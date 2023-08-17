@@ -211,6 +211,8 @@ Write-Host "Looking though URL...`r" -NoNewline
 
 try {
 	$client = New-Object System.Net.WebClient
+	$client.Headers.add('Referer', 'https://mangadex.org/')
+	$client.Headers.add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/116.0')
 	$manga = $client.DownloadString("https://api.mangadex.org/manga/${url}/feed?translatedLanguage[]=${lang}&includes[]=scanlation_group&includes[]=user&order[volume]=asc&order[chapter]=asc&includes[]=manga&limit=500") | ConvertFrom-Json
 }
 catch {
