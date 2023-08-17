@@ -65,9 +65,9 @@ $progdisp = {
 	    $pos.Y -= 3
 	    $host.UI.RawUI.CursorPosition = $pos
 
-        show-progress $imgdlprog    $imgdltotal     "Imgdl   : "    $(([string]$imgdltotal).length * 2 + 3)
-        show-progress $imgconvprog  $imgconvtotal   "Imgconv : "    $(([string]$imgdltotal).length * 2 + 3)
-        show-progress $pdfprog      $pdftotal       "Pdfconv : "    $(([string]$imgdltotal).length * 2 + 3)
+        show-progress $imgdlprog    $imgdltotal     "Download      "    $(([string]$imgdltotal).length * 2 + 3)
+        show-progress $imgconvprog  $imgconvtotal   "Compression   "    $(([string]$imgdltotal).length * 2 + 3)
+        show-progress $pdfprog      $pdftotal       "PDF Conversion"    $(([string]$imgdltotal).length * 2 + 3)
 
         # break condition
         if ($imgdlprog -eq $imgdltotal -and $imgconvprog -eq $imgconvtotal -and $pdfprog -eq $pdftotal) { break }

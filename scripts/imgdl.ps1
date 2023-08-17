@@ -58,7 +58,9 @@
     $mutex = New-Object System.Threading.Mutex($false, 'Global\MyMutex')
 
     $imglist | ForEach-Object -throttlelimit $maxConcurrentJobs -Parallel {
-        (New-Object System.Net.WebClient).DownloadFile($_.img, $_.out)
+        $client = (New-Object System.Net.WebClient)
+	    $client.Headers.add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/116.0')
+        $client.DownloadFile($_.img, $_.out)
         $toconvobj = [PSCustomObject]@{
             src = $_.out
             dest = $_.dst

@@ -351,6 +351,8 @@ function queue-chapter {
 		[string]$cloudd
 	)
 
+	$client.Headers.add('Referer', 'https://mangadex.org/')
+	$client.Headers.add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/116.0')
 	$json = $client.DownloadString("https://api.mangadex.org/at-home/server/${id}?forcePort443=false") | ConvertFrom-Json
 
 	$imglist = $json.chapter.data
