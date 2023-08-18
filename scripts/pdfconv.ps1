@@ -33,7 +33,8 @@ $pdfconv = {
 
         # Convert images to pdf
         $pdfc | ForEach-Object {
-            Invoke-Expression "magick `"$($_.src)/*.jpg`" -density 80x -compress JPEG `"$($_.dest)`""
+            #-colorspace Gray -adaptive-blur 2 -quality 40 -despeckle -compress JPEG -density 80x
+            Invoke-Expression "magick `"$($_.src)/*.jpg`" -colorspace Gray -adaptive-blur 2 -quality 40 -despeckle -compress JPEG -density 80x `"$($_.dest)`""
             if ($_.cloud -ne 0) { Copy-Item "$($_.dest)" "$($_.cloud)" }
             remove-item "$($_.src)" -Recurse
         }

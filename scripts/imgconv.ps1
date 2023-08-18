@@ -13,7 +13,7 @@
 
         # build imgconv
         for ($i=0; $i -lt $chapterqueue.Value.length.length; $i++) {
-            $incompletedl += ($chapterqueue.value[$i].total - $chapterqueue.value[$i].dlcomp)
+            $incompletedl += ($chapterqueue.value[$i].total - $chapterqueue.value[$i].dlcomp.length.length)
             if ($chapterqueue.value[$i].toconv.length -lt 1) { continue }
             for ($j=[int]($chapterqueue.value[$i].toconv.length.length) - 1; $j -ge 0; $j--) {          # it doesn't work if i put a single .length
                 $imgconv.Add($chapterqueue.value[$i].toconv[$j])                                        # if you know why, PLEASE TELL ME!!

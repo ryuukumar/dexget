@@ -364,7 +364,7 @@ function queue-chapter {
 		id = $id
 		outdir = $outdir
 		title = $title
-		dlcomp = 0
+		dlcomp = [System.Collections.ArrayList]@()
 		convcomp = 0
 		total = $imglen
 		hash = $hash

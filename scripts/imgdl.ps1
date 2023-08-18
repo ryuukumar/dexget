@@ -66,11 +66,14 @@
             dest = $_.dst
             index = $_.index
         }
+        $dldoneobj = [PSCustomObject]@{
+            out = $_.out
+        }
         
         $mutex.WaitOne() | Out-Null
         try {
             ($using:chapterqueue).value[$_.index].toconv.add($toconvobj)
-            ($using:chapterqueue).value[$_.index].dlcomp++
+            ($using:chapterqueue).value[$_.index].dlcomp.add($dldoneobj)
         }
         finally {
             $mutex.ReleaseMutex()

@@ -43,7 +43,7 @@ $progdisp = {
         # update imgdl progress
         $imgdlprog = 0
         $chapterqueue.value | foreach-object {
-            $imgdlprog += $_.dlcomp
+            $imgdlprog += $_.dlcomp.length.length
         }
 
         # update img conversion progress
@@ -52,7 +52,7 @@ $progdisp = {
             $imgconvprog += $_.convcomp
         }
 
-        if ($imgdlprog -lt $imgconvprog) { $imgdlprog = $imgconvprog }
+        #if ($imgdlprog -lt $imgconvprog) { $imgdlprog = $imgconvprog }
 
         # update pdf conversion progress
         $pdfprog = 0
