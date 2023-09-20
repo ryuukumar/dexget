@@ -62,7 +62,9 @@ $keep = [System.Collections.ArrayList]@()
 $tbd | ForEach-Object {
 	$keep.add($_.keeppath) | out-null
 	$_.del | ForEach-Object {
-		$del.add($_.path) | out-null
+		if ($_.path -ne "") {
+			$del.add($_.path) | out-null
+		}
 	}
 }
 
@@ -71,15 +73,25 @@ if ($del.length.length -eq 0) {
 	exit
 }
 
-write-host "After this operation, the following $($del.length.length) files will be " -NoNewline
-write-host "permanently deleted" -ForegroundColor Red
-
 $maxlen_of_filename = 0
 $tbd | ForEach-Object {
 	if (($_.mangapath -split "\\")[-1].length -gt $maxlen_of_filename) {
 		$maxlen_of_filename = ($_.mangapath -split "\\")[-1].length
 	}
 }
+
+write-host "`nAfter this operation, the following $($keep.length.length) files will be " -NoNewline
+write-host "kept" -ForegroundColor Green
+
+$tbd | ForEach-Object {
+	write-host "  " -NoNewline
+	write-host "$(($_.mangapath -split "\\")[-1])" -NoNewline
+	for ($i=0; $i -lt ($maxlen_of_filename-($_.mangapath -split "\\")[-1].length)+2; $i++) { write-host " " -NoNewline }
+	write-host " Chapter $($_.keepnum)" -ForegroundColor Green
+}
+
+write-host "`nThe following $($del.length.length) files will be " -NoNewline
+write-host "permanently deleted" -ForegroundColor Red
 
 $tbd | ForEach-Object {
 	if ($_.del.length.length -ge 1) {
@@ -91,16 +103,6 @@ $tbd | ForEach-Object {
 	}
 }
 
-write-host "`nThe following $($keep.length.length) files will be " -NoNewline
-write-host "kept" -ForegroundColor Green
-
-$tbd | ForEach-Object {
-	write-host "  " -NoNewline
-	write-host "$(($_.mangapath -split "\\")[-1])" -NoNewline
-	for ($i=0; $i -lt ($maxlen_of_filename-($_.mangapath -split "\\")[-1].length)+2; $i++) { write-host " " -NoNewline }
-	write-host " Chapter $($_.keepnum)" -ForegroundColor Green
-}
-
 write-host "`nThis process is " -NoNewline
 write-host "irreversible" -NoNewline -ForegroundColor Red
 write-host ", and there will be " -NoNewline
@@ -110,7 +112,7 @@ $continue = Read-Host "Do you want to continue? [Y/n]"
 
 if ($continue -eq "y" -or $continue -eq "Y") {
 	$del | ForEach-Object {
-		if (Test-Path "$_") {
+		if (Test-Path "$_" -PathType leaf) {
 			if ($keep.Contains($_)) {
 				write-host "Prevented $_ from being deleted."
 			} else {
@@ -120,11 +122,18 @@ if ($continue -eq "y" -or $continue -eq "Y") {
 			write-host "$_ is fake."
 		}
 	}
+	$errors = $false
 	$keep | ForEach-Object {
 		if (-not (Test-Path "$_") -and $_ -ne "") {
 			write-host "ERROR: " -NoNewline -ForegroundColor Red
 			write-host "File $_ is missing, even though it was scheduled for keeping."
+			$errors = $true
 		}
+	}
+
+	if ($errors -eq $true) {
+		write-host "Exiting with error(s)." -ForegroundColor Red
+		exit
 	}
 
 	write-host "Deleted $($del.length.length) files."
