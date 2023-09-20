@@ -19,8 +19,8 @@ $progdisp = {
         $fill = $progbarlength * [double]($part/$total)
 
         write-host "$pre [" -NoNewline
-        for ($i=0; $i -lt $fill; $i++) { write-host "=" -NoNewline }
-        for ($i=$fill; $i -lt $progbarlength; $i++) { write-host " " -NoNewline }
+        write-host ("=" * $fill) -NoNewline
+        write-host (" " * ($progbarlength - $fill)) -NoNewline
         write-host "] [$part/$total]  "
 
     }

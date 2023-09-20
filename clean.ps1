@@ -97,7 +97,7 @@ $tbd | ForEach-Object {
 	if ($_.del.length.length -ge 1) {
 		write-host "  " -NoNewline
 		write-host "$(($_.mangapath -split "\\")[-1])" -NoNewline
-		for ($i=0; $i -lt ($maxlen_of_filename-($_.mangapath -split "\\")[-1].length)+2; $i++) { write-host " " -NoNewline }
+		write-host (" " * (($maxlen_of_filename-($_.mangapath -split "\\")[-1].length)+2)) -NoNewline
 		write-host " Chapters $($_.first) - $($_.secondlast)" -NoNewline -ForegroundColor Red
 		write-host "    [$($_.del.length.length) files]" -ForegroundColor Yellow
 	}
