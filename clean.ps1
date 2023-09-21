@@ -3,7 +3,21 @@
 # relative to current directory
 $savedir = "Manga"
 
+function Format-Filesize([int]$length) {
+	if ($length -lt 1000) {
+		return "$length bytes"
+	}
+	elseif ($length -lt 1MB) {
+		return "{0:N0} KB" -f ($length/1KB)
+	}
+	else {
+		return "{0:N2} MB" -f ($length/1MB)
+	}
+}
+
 $tbd = [System.Collections.ArrayList]@()
+[System.Int128]$dellen = 0
+[System.Int128]$keeplen = 0
 
 write-host -NoNewline "Scanning $(Get-Location)\$savedir... "
 Get-ChildItem "$savedir" | ForEach-Object {
@@ -27,6 +41,8 @@ Get-ChildItem "$savedir" | ForEach-Object {
 			keepnum = $lastch
 			keeppath = ""
 			del = [System.Collections.ArrayList]@()
+			dellen = [System.Int128]0
+			keeplen = [System.Int128]0
 			secondlast = $secondlastch
 			first = $firstch
 			files = $files.Name
@@ -41,9 +57,13 @@ Get-ChildItem "$savedir" | ForEach-Object {
 					number = $chnum
 					path = "$_\$file"
 				}) | out-null
+				$dellen += [System.Int128]((Get-Item "$_\$file").Length)
+				$log.dellen += [System.Int128]((Get-Item "$_\$file").Length)
 			}
 			else {
 				$log.keeppath = "$_\$file"
+				$keeplen += [System.Int128]((Get-Item "$_\$file").Length)
+				$log.keeplen += [System.Int128]((Get-Item "$_\$file").Length)
 			}
 		}
 
@@ -80,26 +100,29 @@ $tbd | ForEach-Object {
 	}
 }
 
-write-host "`nAfter this operation, the following $($keep.length.length) files will be " -NoNewline
+write-host "`nAfter this operation, the following $($keep.length.length) files [$(Format-Filesize $keeplen)] will be " -NoNewline
 write-host "kept" -ForegroundColor Green
 
 $tbd | ForEach-Object {
 	write-host "  " -NoNewline
-	write-host "$(($_.mangapath -split "\\")[-1])" -NoNewline
-	for ($i=0; $i -lt ($maxlen_of_filename-($_.mangapath -split "\\")[-1].length)+2; $i++) { write-host " " -NoNewline }
-	write-host " Chapter $($_.keepnum)" -ForegroundColor Green
+	write-host "$(($_.mangapath -split "\\")[-1])" -NoNewline -ForegroundColor Cyan
+	write-host (" " * (($maxlen_of_filename-($_.mangapath -split "\\")[-1].length)+2)) -NoNewline
+	write-host " Chapter $($_.keepnum)" -ForegroundColor Green -NoNewline
+	write-host (" " * (10-([string]($_.keepnum)).length)) -NoNewline
+	write-host "$(Format-Filesize $_.keeplen)" -ForegroundColor Yellow
 }
 
-write-host "`nThe following $($del.length.length) files will be " -NoNewline
+write-host "`nThe following $($del.length.length) files [$(Format-Filesize $dellen)] will be " -NoNewline
 write-host "permanently deleted" -ForegroundColor Red
 
 $tbd | ForEach-Object {
 	if ($_.del.length.length -ge 1) {
 		write-host "  " -NoNewline
-		write-host "$(($_.mangapath -split "\\")[-1])" -NoNewline
+		write-host "$(($_.mangapath -split "\\")[-1])" -NoNewline -ForegroundColor Cyan
 		write-host (" " * (($maxlen_of_filename-($_.mangapath -split "\\")[-1].length)+2)) -NoNewline
 		write-host " Chapters $($_.first) - $($_.secondlast)" -NoNewline -ForegroundColor Red
-		write-host "    [$($_.del.length.length) files]" -ForegroundColor Yellow
+		write-host (" " * (15-"$($_.first) - $($_.secondlast)".Length)) -NoNewline
+		write-host "$($_.del.length.length) files `t$(Format-Filesize $_.dellen)" -ForegroundColor Yellow
 	}
 }
 
