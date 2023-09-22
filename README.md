@@ -18,5 +18,9 @@ Downloads of more than 20 chapters in a go may experience slower speeds as downl
 
 Additionally, a slight change in the processing of downloads may lead to PDFs upto 40% smaller in size (on personal tests) and more consistency in the PDFs (it is my personal observation that some PDFs have varying width even though I intend for them to all have the same width).
 
+Finally, there are two utility scripts introduced:
+- update.ps1: Based on a list of manga available in updates.txt, it will download all the latest chapters after the ones already downloaded.
+- clean.ps1: Clears all the manga in the downloads folder (NOT in the cloud!), save for the last chapter.
+
 ### v1.1
 v1.1 introduces a more intelligent chapter selection process, which can also look at previous download progress. The script has been patched up to look more aesthetically pleasing and colorful.
