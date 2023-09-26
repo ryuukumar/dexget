@@ -11,6 +11,9 @@ Make sure that the manga link you paste contains the manga ID! This is a manga I
 
 ## What's new?
 
+### v1.3
+v1.3 implements a better preferences system, as well as varying levels of save quality.
+
 ### v1.2
 v1.2 introduces batch downloading - where chapters are downloaded all together instead of separately. This approach has been noted (on personal tests) to cache manga on the local drive as a PDF upto 4x faster than v1.1.
 
