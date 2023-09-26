@@ -61,7 +61,9 @@
         $j++
     }
 
-    #$mutex = New-Object System.Threading.Mutex($false, 'Global\MyMutex')
+    $mutex = [hashtable]::Synchronized(@{
+        Mutex = [System.Threading.Mutex]::new()
+    })
 
     $imglist | ForEach-Object -throttlelimit $settings.'performance'.'maximum-simultaneous-downloads' -Parallel {
         $client = (New-Object System.Net.WebClient)
@@ -76,13 +78,10 @@
             out = $_.out
         }
         
-        #$mutex.WaitOne() | Out-Null
-        try {
+        if ($($using:mutex)['Mutex'].WaitOne()) {
             ($using:chapterqueue).value[$_.index].toconv.add($toconvobj)
             ($using:chapterqueue).value[$_.index].dlcomp.add($dldoneobj)
-        }
-        finally {
-            #$mutex.ReleaseMutex()
+            $($using:mutex)['Mutex'].ReleaseMutex()
         }
     }
 }
