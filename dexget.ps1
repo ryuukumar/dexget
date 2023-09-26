@@ -450,7 +450,7 @@ try {
 				if (($clchoice -eq 'y' -or $clchoice -eq 'Y') -and -not (test-path "$clouddir\$mangadir"))
 				{ mkdir "$clouddir\$mangadir" | out-null }
 				write-host "Queued chapter $($chapters[$i].attributes.chapter) ($($i-$chpindex+1))    `r" -NoNewline
-				if (((($i-$chpindex) / 20) -eq [int](($i-$chpindex) / 20)) -and $i -ne $chpindex) {
+				if (((($i-$chpindex+1) / 20) -eq [int](($i-$chpindex+1) / 20)) -and $i -ne $chpindex) {
 					$startdate = (Get-Date)
 					download-queue
 					$chapterqueue = [System.Collections.ArrayList]@()
