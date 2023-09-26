@@ -1,13 +1,26 @@
 # DexGet
-Script to pull manga off of MangaDex
+Script to pull manga off of MangaDex.
 
-To run, go to the folder which contains DexGet and type:
+To run, go to the folder which contains DexGet and type (in PowerShell Terminal):
 
 ```
 ./dexget.ps1 <manga-link>
 ```
 
-Make sure that the manga link you paste contains the manga ID! This is a manga ID: 32d76d19-8a05-4db0-9fc2-e0b0648fe9d0
+Make sure that the manga link you paste contains the manga ID! This is a manga ID: `32d76d19-8a05-4db0-9fc2-e0b0648fe9d0`
+
+Also available:
+
+- `update.ps1`: Based on manga links you save in `notepad.txt`, it will simply download all the latest chapters after the currently saved ones.
+- `clean.ps1`: When you have finished reading some manga but you want to download all new updates to the manga (with `update.ps1`) and delete everything you already read, use this to remove all chapters except the latest for ALL manga in the save directory.
+
+## Installation
+
+Read [INSTALL.md](INSTALL.md) for install instructions.
+
+## Configuration and Settings
+
+Read [SETTINGS.md](SETTINGS.md) for configuration instructions and a brief on settings.
 
 ## What's new?
 
