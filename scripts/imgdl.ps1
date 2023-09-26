@@ -5,9 +5,15 @@
     param(
         [ref]$chapterqueue
     )
+    write-host "`n`nHIIIIII`n`n"
+
+    $settings | Out-Null
+    if (Test-Path "../preferences.json") { $settings = Get-Content '../preferences.json' | ConvertFrom-Json }
+    elseif (Test-Path "../../preferences.json") { $settings = Get-Content '../../preferences.json' | ConvertFrom-Json }
+    else { write-host "i am confusion." ; exit }
+
 
     $baseUr = "https://uploads.mangadex.org"
-    $maxConcurrentJobs = 20
 
     function Get-WebSize ([string]$url) {
         $HttpWebResponse = $null
@@ -55,9 +61,9 @@
         $j++
     }
 
-    $mutex = New-Object System.Threading.Mutex($false, 'Global\MyMutex')
+    #$mutex = New-Object System.Threading.Mutex($false, 'Global\MyMutex')
 
-    $imglist | ForEach-Object -throttlelimit $maxConcurrentJobs -Parallel {
+    $imglist | ForEach-Object -throttlelimit $settings.'performance'.'maximum-simultaneous-downloads' -Parallel {
         $client = (New-Object System.Net.WebClient)
 	    $client.Headers.add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/116.0')
         $client.DownloadFile($_.img, $_.out)
@@ -70,13 +76,13 @@
             out = $_.out
         }
         
-        $mutex.WaitOne() | Out-Null
+        #$mutex.WaitOne() | Out-Null
         try {
             ($using:chapterqueue).value[$_.index].toconv.add($toconvobj)
             ($using:chapterqueue).value[$_.index].dlcomp.add($dldoneobj)
         }
         finally {
-            $mutex.ReleaseMutex()
+            #$mutex.ReleaseMutex()
         }
     }
 }

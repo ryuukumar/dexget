@@ -7,22 +7,7 @@
 #
 
 
-$VERSION = '1.2'
-
-
-
-
-
-#---------------------------------------#
-#  PREFERENCES                          #
-#---------------------------------------#
-
-
-$width = 1000
-$lang = "en"
-$savedir = "Manga"
-$clouddir = "C:\users\adity\iCloudDrive\Manga"
-$maxConcurrentJobs = 25
+$VERSION = '1.3 β'
 
 
 
@@ -152,7 +137,7 @@ function Get-ChpIndex {
 #---------------------------------------#
 
 
-#  00. ASSERT POWERSHELL 7
+#  0. ASSERT POWERSHELL 7
 
 if ($PSVersionTable.PSVersion.Major -lt 7) {
 	write-box "`nFATAL ERROR!!!`n`nThis script is running on Powershell $($PSVersionTable.PSVersion.Major).`nDexGet requires Powershell 7 or higher to run!`nPlease install Powershell 7 and then run this script.`n" -fgcolor Red -center $true
@@ -160,7 +145,37 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 }
 
 
-#  0. GET ID AND PARSE ARGUMENTS
+#  1. LOAD SETTINGS
+
+$settings
+if (-not (Test-Path "preferences.json")) {
+	$settings = @{
+		'general' = @{
+			'manga-language' = "ru"
+			'enable-cloud-saving' = $false
+			'manga-save-directory' = "Manga"
+			'cloud-save-directory' = ""
+		}
+		'performance' = @{
+			'maximum-simultaneous-downloads' = 25
+			'maximum-simultaneous-conversions' = 1
+			'maximum-simultaneous-pdf-conversions' = 1
+		}
+		'manga-quality' = @{
+			'page-width' = 1000
+			'grayscale' = $false
+		}
+	}
+	$settings | ConvertTo-Json | Out-File 'preferences.json'
+	write-host "WARNING: preferences.json not found, so it was created with default settings." -ForegroundColor Yellow
+}
+else {
+	$settings = Get-Content 'preferences.json' | ConvertFrom-Json
+	write-host "$($settings | ConvertTo-Json)"
+}
+
+
+#  2. GET ID AND PARSE ARGUMENTS
 
 Write-Host ""
 Write-Box "DexGet v$VERSION`n@ryuukumar on GitHub`nhttps://github.com/ryuukumar/dexget" -center $true
@@ -189,7 +204,11 @@ while ($true) {
 			$argsettings.continue = $true
 		}
 		if ($args[$i] -eq "--cloud" -or $args[$i] -eq "-C") {
-			$argsettings.cloud = $true
+			if ($settings.'general'.'enable-cloud-saving' -eq $false) {
+				write-host "WARNING: --cloud was passed but cloud saving is disabled in the preferences. The argument will be ignored." -ForegroundColor Yellow
+			} else {
+				$argsettings.cloud = $true
+			}
 		}
 		if ($args[$i] -eq "--all" -or $args[$i] -eq "-a") {
 			$argsettings.all = $true
@@ -200,7 +219,7 @@ while ($true) {
 }
 
 
-#  1. DOWNLOAD URL
+#  3. DOWNLOAD URL
 
 # Long term:
 # The permitted "limit" per request is 500 chapters. For anything beyond that, it is possible to use the
@@ -213,7 +232,7 @@ try {
 	$client = New-Object System.Net.WebClient
 	$client.Headers.add('Referer', 'https://mangadex.org/')
 	$client.Headers.add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/116.0')
-	$manga = $client.DownloadString("https://api.mangadex.org/manga/${url}/feed?translatedLanguage[]=${lang}&includes[]=scanlation_group&includes[]=user&order[volume]=asc&order[chapter]=asc&includes[]=manga&limit=500") | ConvertFrom-Json
+	$manga = $client.DownloadString("https://api.mangadex.org/manga/${url}/feed?translatedLanguage[]=$($settings.'general'.'manga-language')&includes[]=scanlation_group&includes[]=user&order[volume]=asc&order[chapter]=asc&includes[]=manga&limit=500") | ConvertFrom-Json
 }
 catch {
 	write-host "`nFATAL ERROR!`n" -ForegroundColor red
@@ -223,7 +242,7 @@ catch {
 }
 
 
-#  2. SCOUR MANGA FOR DATA
+#  4. SCOUR MANGA FOR DATA
 
 $groups=@()
 $mangaid=""
@@ -233,6 +252,7 @@ foreach ($scg in $manga.data[0].relationships) {
 	if ($scg.type -eq "scanlation_group") { 
 		$groups += $scg.id
 	}
+	# TODO: look into $scg.attributes.altTitles to give language-specific titles to manga
 	if ($scg.type -eq "manga") {
 		$mangaid = $scg.id
 		[string]$titles = $scg.attributes.title
@@ -283,12 +303,12 @@ $chpindex = 0
 $chpnum = 0
 
 
-#  3. GET USER INPUT ON WHAT TO DO
+#  5. GET USER INPUT ON WHAT TO DO
 
-if (test-path "$savedir\(Manga) ${mangatitle}") {
+if (test-path "$($settings.'general'.'manga-save-directory')\(Manga) ${mangatitle}") {
 	Write-Host "Found a previous save of the manga in the save directory." -ForegroundColor Yellow
 
-	$files = $(Get-ChildItem "$savedir\(Manga) ${mangatitle}")
+	$files = $(Get-ChildItem "$($settings.'general'.'manga-save-directory')\(Manga) ${mangatitle}")
 	$filenos = @()
 
 	foreach ($file in $files.name) {
@@ -338,7 +358,7 @@ if ($chpindex -eq -1) {
 }
 
 
-#  4. FUNCTION DEFINITION FOR GETTING THE CHAPTER
+#  6. FUNCTION DEFINITION FOR GETTING THE CHAPTER
 
 $client = New-Object System.Net.WebClient
 $chapterqueue = [System.Collections.ArrayList]@()
@@ -379,38 +399,41 @@ function queue-chapter {
 function download-queue {
 	write-host "`n`n"
 	$imgdljob = Start-ThreadJob -ScriptBlock $imgdl -ArgumentList ([ref]$chapterqueue)
-	$imgconvjob = Start-ThreadJob -ScriptBlock $imgconv -ArgumentList ([ref]$chapterqueue), $width
-	$pdfconvjob = Start-ThreadJob -ScriptBlock $pdfconv -ArgumentList ([ref]$chapterqueue), $width
+	$imgconvjob = Start-ThreadJob -ScriptBlock $imgconv -ArgumentList ([ref]$chapterqueue)
+	$pdfconvjob = Start-ThreadJob -ScriptBlock $pdfconv -ArgumentList ([ref]$chapterqueue)
 	& $progdisp ([ref]$chapterqueue)
 	write-host ""
 }
 
 
-#  5. GET THE ACTUAL CHAPTER
+#  7. GET THE ACTUAL CHAPTER
 
 $originaldir = Get-Location
 
 try {
 	Write-Host ""
 
-	Set-Location $savedir
+	Set-Location $settings.'general'.'manga-save-directory'
 
 	if (($chpindex) -lt $chapters.length) {
 		$choice = ($argsettings.all `
 			? 'y' `
 			: (Read-Host "There are $($chapters.length - 1 - $chpindex) more chapters after the given ID. Would you like to download all of them? [Y/n/s]"))
 
-		$clchoice = ($argsettings.cloud `
-			? 'y' `
-			: (Read-Host "Do you want to save a copy of this download to the cloud? [Y/n]"))
+		$clchoice
+		if ($settings.'general'.'enable-cloud-saving' -eq $true) {
+			$clchoice = ($argsettings.cloud ? 'y' `
+				: (Read-Host "Do you want to save a copy of this download to the cloud? [Y/n]"))
+		} else {
+			$clchoice = 'n'
+		}
+		
 
 		if (-not ($choice -eq "Y" -or $choice -eq "y" -or $choice -eq "S" -or $choice -eq "s")) { 
-			Write-Host "$chpindex`n$($chapters[$chpindex].id)`n$($chapters[$chpindex].attributes.chapter)"
 			queue-chapter $chapters[$chpindex].id `
 				-title "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" `
 				-outdir "$(Get-Location)\$($chapters[$chpindex].id)" `
-				-cloudd (($clchoice -eq 'y' -or $clchoice -eq 'Y') ? "$clouddir" : 0)
-			
+				-cloudd (($clchoice -eq 'y' -or $clchoice -eq 'Y') ? "$($settings.'general'.'cloud-save-directory')" : 0)			
 			write-host ""
 			Write-Box "Starting 1 download task." -fgcolor Blue
 			write-host ""
@@ -437,18 +460,18 @@ try {
 			write-host ""
 
 			if ($clchoice -eq "y" -or $clchoice -eq "Y") {
-				if (!(Test-Path "$clouddir\$mangadir")) {
-					mkdir "$clouddir\$mangadir" | out-null
+				if (!(Test-Path "$($settings.'general'.'cloud-save-directory')/$mangadir")) {
+					mkdir "$($settings.'general'.'cloud-save-directory')/$mangadir" | out-null
 				}
 			}
 			
 			for ($i=$chpindex; $i -lt $last; $i++) {
 				queue-chapter $chapters[$i].id `
 					-title "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" `
-					-outdir "$(Get-Location)\$($chapters[$i].id)" `
-					-cloudd (($clchoice -eq 'y' -or $clchoice -eq 'Y') ? "$clouddir\$mangadir" : 0)
-				if (($clchoice -eq 'y' -or $clchoice -eq 'Y') -and -not (test-path "$clouddir\$mangadir"))
-				{ mkdir "$clouddir\$mangadir" | out-null }
+					-outdir "$(Get-Location)/$($chapters[$i].id)" `
+					-cloudd (($clchoice -eq 'y' -or $clchoice -eq 'Y') ? "$($settings.'general'.'cloud-save-directory')/$mangadir" : 0)
+				if (($clchoice -eq 'y' -or $clchoice -eq 'Y') -and -not (test-path "$($settings.'general'.'cloud-save-directory')/$mangadir"))
+				{ mkdir "$($settings.'general'.'cloud-save-directory')/$mangadir" | out-null }
 				write-host "Queued chapter $($chapters[$i].attributes.chapter) ($($i-$chpindex+1))    `r" -NoNewline
 				if (((($i-$chpindex+1) / 20) -eq [int](($i-$chpindex+1) / 20)) -and $i -ne $chpindex) {
 					$startdate = (Get-Date)

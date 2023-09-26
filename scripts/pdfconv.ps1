@@ -3,9 +3,13 @@
 
 $pdfconv = {
     param (
-        [ref]$chapterqueue,
-        [int]$width
+        [ref]$chapterqueue
     )
+
+    $settings | Out-Null
+    if (Test-Path "../preferences.json") { $settings = Get-Content '../preferences.json' | ConvertFrom-Json }
+    elseif (Test-Path "../../preferences.json") { $settings = Get-Content '../../preferences.json' | ConvertFrom-Json }
+    else { write-host "i am confusion." }
 
     while ($true) {
         $pdfc = [System.Collections.ArrayList]@()
@@ -21,9 +25,9 @@ $pdfconv = {
                 src = "$($chapterqueue.value[$i].outdir)"
                 dest = "$($chapterqueue.value[$i].outdir)/../$($chapterqueue.value[$i].title)"
                 cloud = (($chapterqueue.value[$i].clouddir -ne 0) ? "$($chapterqueue.value[$i].clouddir)" : 0)
+                i = $i
             }
             $pdfc.add($pdfobj)
-            $chapterqueue.value[$i].pdfmade = $true
         }
 
         # Break condition
@@ -32,11 +36,16 @@ $pdfconv = {
         }
 
         # Convert images to pdf
-        $pdfc | ForEach-Object {
-            #-colorspace Gray -adaptive-blur 2 -quality 40 -despeckle -compress JPEG -density 80x
-            Invoke-Expression "magick `"$($_.src)/*.jpg`" -colorspace Gray -adaptive-blur 2 -quality 40 -despeckle -compress JPEG -density 80x `"$($_.dest)`""
+        $pdfc | ForEach-Object -ThrottleLimit $settings.'performance'.'maximum-simultaneous-pdf-conversions' -parallel {
+            $magickargs = " "
+            if ($($using:settings).'manga-quality'.'grayscale' -eq $true) { $magickargs += " -colorspace Gray " }
+            $magickargs += "-adaptive-blur 2 -quality 40 -despeckle -compress JPEG -density 80x"
+
+            Invoke-Expression "magick `"$($_.src)/*.jpg`" $magickargs `"$($_.dest)`""
+            #Invoke-Expression "python.exe -m img2pdf `"$($_.src)/*.jpg`" -o `"$($_.dest)`""        # proposing new method of PDF making, to be tested, requires python
             if ($_.cloud -ne 0) { Copy-Item "$($_.dest)" "$($_.cloud)" }
             remove-item "$($_.src)" -Recurse
+            $($using:chapterqueue).value[$_.i].pdfmade = $true
         }
 
         # wait

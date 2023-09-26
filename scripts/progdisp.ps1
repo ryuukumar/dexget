@@ -6,6 +6,12 @@ $progdisp = {
         [ref]$chapterqueue
     )
 
+    $settings | Out-Null
+    if (Test-Path "../preferences.json") { $settings = Get-Content '../preferences.json' | ConvertFrom-Json }
+    elseif (Test-Path "../../preferences.json") { $settings = Get-Content '../../preferences.json' | ConvertFrom-Json }
+    else { write-host "i am confusion." }
+   
+
     function show-progress {
         param (
             [double]$part,
@@ -19,8 +25,13 @@ $progdisp = {
         $fill = $progbarlength * [double]($part/$total)
 
         write-host "$pre [" -NoNewline
-        write-host ("=" * $fill) -NoNewline
-        write-host (" " * ($progbarlength - $fill)) -NoNewline
+        if ($part -eq $total) {
+            write-host ("=" * $fill) -NoNewline -ForegroundColor Green
+        }
+        else {
+            write-host ("=" * ($fill)) -NoNewline -ForegroundColor Yellow
+            write-host (" " * ($progbarlength - $fill)) -NoNewline
+        }
         write-host "] [$part/$total]  "
 
     }
@@ -65,14 +76,14 @@ $progdisp = {
 	    $pos.Y -= 3
 	    $host.UI.RawUI.CursorPosition = $pos
 
-        show-progress $imgdlprog    $imgdltotal     "Download      "    $(([string]$imgdltotal).length * 2 + 3)
-        show-progress $imgconvprog  $imgconvtotal   "Compression   "    $(([string]$imgdltotal).length * 2 + 3)
-        show-progress $pdfprog      $pdftotal       "PDF Conversion"    $(([string]$imgdltotal).length * 2 + 3)
+        show-progress $imgdlprog    $imgdltotal     "Download      "    $(([string]$imgdltotal).length * 2 + 2)
+        show-progress $imgconvprog  $imgconvtotal   "Compression   "    $(([string]$imgdltotal).length * 2 + 2)
+        show-progress $pdfprog      $pdftotal       "PDF Conversion"    $(([string]$imgdltotal).length * 2 + 2)
 
         # break condition
         if ($imgdlprog -eq $imgdltotal -and $imgconvprog -eq $imgconvtotal -and $pdfprog -eq $pdftotal) { break }
 
         # pause
-        Start-Sleep -Milliseconds 250
+        Start-Sleep -Milliseconds 200
     }
 }
