@@ -2,6 +2,10 @@
 
 # relative to current directory
 $savedir = "Manga"
+$sep = '/'
+$fsep = '/'
+
+if ($IsWindows) { $sep = '\' ; $fsep = '\\' }
 
 function Format-Filesize([int]$length) {
 	if ($length -lt 1000) {
@@ -19,9 +23,9 @@ $tbd = [System.Collections.ArrayList]@()
 [System.Int128]$dellen = 0
 [System.Int128]$keeplen = 0
 
-write-host -NoNewline "Scanning $(Get-Location)\$savedir... "
+write-host -NoNewline "Scanning $(Get-Location)$sep$savedir... "
 Get-ChildItem "$savedir" | ForEach-Object {
-	if (((($_ -split ' ')[0]) -eq "$(get-location)\$savedir\(Manga)") -and (test-path $_ -PathType Container)) {
+	if (((($_ -split ' ')[0]) -eq "$(get-location)$sep$savedir$sep(Manga)") -and (test-path $_ -PathType Container)) {
 		$files = $(Get-ChildItem "$_")
 		$filenos = [System.Collections.ArrayList]@()
 
@@ -55,15 +59,15 @@ Get-ChildItem "$savedir" | ForEach-Object {
 				#write-host "`tSchedule $file for deletion."
 				$log.del.add([PSCustomObject]@{
 					number = $chnum
-					path = "$_\$file"
+					path = "$_$sep$file"
 				}) | out-null
-				$dellen += [System.Int128]((Get-Item "$_\$file").Length)
-				$log.dellen += [System.Int128]((Get-Item "$_\$file").Length)
+				$dellen += [System.Int128]((Get-Item "$_$sep$file").Length)
+				$log.dellen += [System.Int128]((Get-Item "$_$sep$file").Length)
 			}
 			else {
-				$log.keeppath = "$_\$file"
-				$keeplen += [System.Int128]((Get-Item "$_\$file").Length)
-				$log.keeplen += [System.Int128]((Get-Item "$_\$file").Length)
+				$log.keeppath = "$_$sep$file"
+				$keeplen += [System.Int128]((Get-Item "$_$sep$file").Length)
+				$log.keeplen += [System.Int128]((Get-Item "$_$sep$file").Length)
 			}
 		}
 
@@ -95,8 +99,8 @@ if ($del.length.length -eq 0) {
 
 $maxlen_of_filename = 0
 $tbd | ForEach-Object {
-	if (($_.mangapath -split "\\")[-1].length -gt $maxlen_of_filename) {
-		$maxlen_of_filename = ($_.mangapath -split "\\")[-1].length
+	if (($_.mangapath -split "$fsep")[-1].length -gt $maxlen_of_filename) {
+		$maxlen_of_filename = ($_.mangapath -split "$fsep")[-1].length
 	}
 }
 
@@ -105,8 +109,8 @@ write-host "kept" -ForegroundColor Green
 
 $tbd | ForEach-Object {
 	write-host "  " -NoNewline
-	write-host "$(($_.mangapath -split "\\")[-1])" -NoNewline -ForegroundColor Cyan
-	write-host (" " * (($maxlen_of_filename-($_.mangapath -split "\\")[-1].length)+2)) -NoNewline
+	write-host "$(($_.mangapath -split "$fsep")[-1])" -NoNewline -ForegroundColor Cyan
+	write-host (" " * (($maxlen_of_filename-($_.mangapath -split "$fsep")[-1].length)+2)) -NoNewline
 	write-host " Chapter $($_.keepnum)" -ForegroundColor Green -NoNewline
 	write-host (" " * (10-([string]($_.keepnum)).length)) -NoNewline
 	write-host "$(Format-Filesize $_.keeplen)" -ForegroundColor Yellow
@@ -118,8 +122,8 @@ write-host "permanently deleted" -ForegroundColor Red
 $tbd | ForEach-Object {
 	if ($_.del.length.length -ge 1) {
 		write-host "  " -NoNewline
-		write-host "$(($_.mangapath -split "\\")[-1])" -NoNewline -ForegroundColor Cyan
-		write-host (" " * (($maxlen_of_filename-($_.mangapath -split "\\")[-1].length)+2)) -NoNewline
+		write-host "$(($_.mangapath -split "$fsep")[-1])" -NoNewline -ForegroundColor Cyan
+		write-host (" " * (($maxlen_of_filename-($_.mangapath -split "$fsep")[-1].length)+2)) -NoNewline
 		write-host " Chapters $($_.first) - $($_.secondlast)" -NoNewline -ForegroundColor Red
 		write-host (" " * (15-"$($_.first) - $($_.secondlast)".Length)) -NoNewline
 		write-host "$($_.del.length.length) files `t$(Format-Filesize $_.dellen)" -ForegroundColor Yellow

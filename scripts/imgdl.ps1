@@ -48,8 +48,8 @@
         foreach ($img in $chapter.images) {
             $newimg = [PSCustomObject]@{
                 img = "$baseUr/data/$($chapter.hash)/$img"
-                out = "$($chapter.outdir)\$(Add-Zeroes $i $chapter.total).png"
-                dst = "$($chapter.outdir)\$(Add-Zeroes $i $chapter.total).jpg"
+                out = "$($chapter.outdir)/$(Add-Zeroes $i $chapter.total).png"
+                dst = "$($chapter.outdir)/$(Add-Zeroes $i $chapter.total).jpg"
                 index = $j
             }
             $imglist.Add($newimg)

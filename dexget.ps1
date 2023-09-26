@@ -123,10 +123,10 @@ function Get-ChpIndex {
 #---------------------------------------#
 
 
-. "$PSScriptRoot\scripts\imgdl.ps1"
-. "$PSScriptRoot\scripts\imgconv.ps1"
-. "$PSScriptRoot\scripts\pdfconv.ps1"
-. "$PSScriptRoot\scripts\progdisp.ps1"
+. "$PSScriptRoot/scripts/imgdl.ps1"
+. "$PSScriptRoot/scripts/imgconv.ps1"
+. "$PSScriptRoot/scripts/pdfconv.ps1"
+. "$PSScriptRoot/scripts/progdisp.ps1"
 
 
 
@@ -305,10 +305,10 @@ $chpnum = 0
 
 #  5. GET USER INPUT ON WHAT TO DO
 
-if (test-path "$($settings.'general'.'manga-save-directory')\(Manga) ${mangatitle}") {
+if (test-path "$($settings.'general'.'manga-save-directory')/(Manga) ${mangatitle}") {
 	Write-Host "Found a previous save of the manga in the save directory." -ForegroundColor Yellow
 
-	$files = $(Get-ChildItem "$($settings.'general'.'manga-save-directory')\(Manga) ${mangatitle}")
+	$files = $(Get-ChildItem "$($settings.'general'.'manga-save-directory')/(Manga) ${mangatitle}")
 	$filenos = @()
 
 	foreach ($file in $files.name) {
@@ -432,7 +432,7 @@ try {
 		if (-not ($choice -eq "Y" -or $choice -eq "y" -or $choice -eq "S" -or $choice -eq "s")) { 
 			queue-chapter $chapters[$chpindex].id `
 				-title "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" `
-				-outdir "$(Get-Location)\$($chapters[$chpindex].id)" `
+				-outdir "$(Get-Location)/$($chapters[$chpindex].id)" `
 				-cloudd (($clchoice -eq 'y' -or $clchoice -eq 'Y') ? "$($settings.'general'.'cloud-save-directory')" : 0)			
 			write-host ""
 			Write-Box "Starting 1 download task." -fgcolor Blue
@@ -453,7 +453,7 @@ try {
 
 			$mangadir = "(Manga) ${mangatitle}"
 			if (!(Test-Path $mangadir)) { mkdir $mangadir | out-null }
-			Set-Location "$(Get-Location)\${mangadir}"
+			Set-Location "$(Get-Location)/${mangadir}"
 
 			write-host ""
 			Write-Box "Queueing $($last - $chpindex) download tasks." -fgcolor Blue
