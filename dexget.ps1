@@ -127,6 +127,7 @@ function Get-ChpIndex {
 . "$PSScriptRoot/scripts/imgconv.ps1"
 . "$PSScriptRoot/scripts/pdfconv.ps1"
 . "$PSScriptRoot/scripts/progdisp.ps1"
+. "$PSScriptRoot/scripts/defaults.ps1"
 
 
 
@@ -147,39 +148,23 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 
 #  1. LOAD SETTINGS
 
-$settings
+[hashtable]$settings = @{}
 if (-not (Test-Path "preferences.json")) {
-	$settings = @{
-		'general' = @{
-			'manga-language' = "ru"
-			'enable-cloud-saving' = $false
-			'manga-save-directory' = "Manga"
-			'cloud-save-directory' = ""
-		}
-		'performance' = @{
-			'maximum-simultaneous-downloads' = 25
-			'maximum-simultaneous-conversions' = 1
-			'maximum-simultaneous-pdf-conversions' = 1
-		}
-		'manga-quality' = @{
-			'page-width' = 1000
-			'grayscale' = $false
-		}
-	}
-	$settings | ConvertTo-Json | Out-File 'preferences.json'
+	$defsettings | ConvertTo-Json | Out-File 'preferences.json'
 	write-host "WARNING: preferences.json not found, so it was created with default settings." -ForegroundColor Yellow
 }
 else {
-	$settings = Get-Content 'preferences.json' | ConvertFrom-Json
+	$settings = ConvertTo-Hashtable (Get-Content 'preferences.json' | ConvertFrom-Json)
+	if (Update-Settings -default $defsettings -current $settings -eq $true) {
+		Write-Host "preferences.json was updated with some new settings. Please rerun DexGet for normal execution." -ForegroundColor Blue
+		$settings | ConvertTo-Json | Out-File 'preferences.json'
+		exit
+	}
 	write-host "$($settings | ConvertTo-Json)"
 }
 
 
 #  2. GET ID AND PARSE ARGUMENTS
-
-Write-Host ""
-Write-Box "DexGet v$VERSION`n@ryuukumar on GitHub`nhttps://github.com/ryuukumar/dexget" -center $true
-Write-Host ""
 
 [string]$inputstr=""
 
@@ -195,6 +180,7 @@ $argsettings = [PSCustomObject]@{
 	continue = $false
 	cloud = $false
 	all = $false
+	banner = $true
 }
 
 $i=0
@@ -213,9 +199,18 @@ while ($true) {
 		if ($args[$i] -eq "--all" -or $args[$i] -eq "-a") {
 			$argsettings.all = $true
 		}
+		if ($args[$i] -eq "--no-banner") {
+			$argsettings.banner = $false
+		}
 	}
 	else { break }
 	$i++
+}
+
+if ($argsettings.banner -eq $true) {
+	Write-Host ""
+	Write-Box "DexGet v$VERSION`n@ryuukumar on GitHub`nhttps://github.com/ryuukumar/dexget" -center $true
+	Write-Host ""
 }
 
 
@@ -523,5 +518,6 @@ finally {
 
 
 Set-Location $originaldir
+$settings | ConvertTo-Json | Out-File 'preferences.json'
 
 exit

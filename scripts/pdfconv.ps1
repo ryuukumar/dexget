@@ -37,11 +37,8 @@ $pdfconv = {
 
         # Convert images to pdf
         $pdfc | ForEach-Object -ThrottleLimit $settings.'performance'.'maximum-simultaneous-pdf-conversions' -parallel {
-            $magickargs = " "
-            if ($($using:settings).'manga-quality'.'grayscale' -eq $true) { $magickargs += " -colorspace Gray " }
-            $magickargs += "-adaptive-blur 2 -quality 40 -despeckle -compress JPEG -density 80x"
-
-            Invoke-Expression "magick `"$($_.src)/*.jpg`" $magickargs `"$($_.dest)`""
+            Invoke-Expression "magick `"$($_.src)/*.jpg`" $($($using:settings).'manga-quality'.'grayscale' ? `
+                "-colorspace Gray" : " ") -compress JPEG -density 80x `"$($_.dest)`""
             #Invoke-Expression "python.exe -m img2pdf `"$($_.src)/*.jpg`" -o `"$($_.dest)`""        # proposing new method of PDF making, to be tested, requires python
             if ($_.cloud -ne 0) { Copy-Item "$($_.dest)" "$($_.cloud)" }
             remove-item "$($_.src)" -Recurse

@@ -31,6 +31,27 @@
             break
         }
 
+        # figure out convert conditions
+        $magickargs = ""
+        if ($settings.'manga-quality'.'grayscale' -eq $true) {
+            $magickargs = "-colorspace Gray "
+        }
+        switch ($settings.'manga-quality'.'quality') {
+            "low" {
+                $magickargs += "-quality 40 -adaptive-blur 2 -despeckle"
+                break
+            }
+            "medium" {
+                $magickargs += "-quality 90 -despeckle"
+                break
+            }
+            "high" {
+                $magickargs += "-quality 95"
+                break
+            }
+            Default {}
+        }
+
         # convert images
         if ($imgconv.length -gt 0) {
             write-host "Found $($imgconv.length) images to convert"
@@ -41,7 +62,7 @@
         })
 
         $imgconv | ForEach-Object -throttlelimit $settings.'performance'.'maximum-simultaneous-conversions' -Parallel {
-            Invoke-Expression "magick convert `"$($_.src)[0]`" -quality 90 -resize $($($using:settings).'manga-quality'.'page-width')x `"$($_.dest)`""
+            Invoke-Expression "magick convert `"$($_.src)[0]`" -resize $($($using:settings).'manga-quality'.'page-width')x $($using:magickargs) `"$($_.dest)`""
             if ($($using:mutex)['Mutex'].WaitOne()) {
                 ($using:chapterqueue).Value[$_.index].convcomp++
                 remove-item "$($_.src)"
