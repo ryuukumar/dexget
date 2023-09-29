@@ -164,6 +164,14 @@ else {
 }
 
 
+#  1.1. UPDATE
+
+if ($settings.'general'.'update-on-launch' -eq $true) {
+	write-host "Update on launch is set to enabled. If there is an updated version, it will run at the next run of DexGet." -ForegroundColor Blue
+	git pull
+}
+
+
 #  2. GET ID AND PARSE ARGUMENTS
 
 [string]$inputstr=""
