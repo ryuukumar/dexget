@@ -32,6 +32,8 @@
         }
 
         # figure out convert conditions
+        $magickcomm = ($IsLinux ? "convert" : "magick convert")
+
         $magickargs = ""
         if ($settings.'manga-quality'.'grayscale' -eq $true) {
             $magickargs = "-colorspace Gray "
@@ -62,7 +64,7 @@
         })
 
         $imgconv | ForEach-Object -throttlelimit $settings.'performance'.'maximum-simultaneous-conversions' -Parallel {
-            Invoke-Expression "magick convert `"$($_.src)[0]`" -resize $($($using:settings).'manga-quality'.'page-width')x $($using:magickargs) `"$($_.dest)`""
+            Invoke-Expression "$($using:magickcomm) `"$($_.src)[0]`" -resize $($($using:settings).'manga-quality'.'page-width')x $($using:magickargs) `"$($_.dest)`""
             if ($($using:mutex)['Mutex'].WaitOne()) {
                 ($using:chapterqueue).Value[$_.index].convcomp++
                 remove-item "$($_.src)"
