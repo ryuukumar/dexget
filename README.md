@@ -25,7 +25,11 @@ Read [SETTINGS.md](SETTINGS.md) for configuration instructions and a brief on se
 ## What's new?
 
 ### v1.3
-v1.3 implements a better preferences system, as well as varying levels of save quality.
+v1.3 gives you more control over your downloads, by implementing easier to change settings. It allows you to select page width in pixels, force grayscale and select quality levels - high, medium and low.
+
+Further, large strides have been made in enabling cross-platform operation, so it is now possible to run DexGet on Windows, Linux and MacOS (note that other OSs may have questionable stability).
+
+There are further stability updates which you may check on PR [#2](https://github.com/ryuukumar/dexget/pull/2).
 
 ### v1.2
 v1.2 introduces batch downloading - where chapters are downloaded all together instead of separately. This approach has been noted (on personal tests) to cache manga on the local drive as a PDF upto 4x faster than v1.1.
