@@ -7,9 +7,8 @@ $pdfconv = {
     )
 
     $settings | Out-Null
-    if (Test-Path "../preferences.json") { $settings = Get-Content '../preferences.json' | ConvertFrom-Json }
-    elseif (Test-Path "../../preferences.json") { $settings = Get-Content '../../preferences.json' | ConvertFrom-Json }
-    else { write-host "i am confusion." }
+    if (Test-Path "preferences.json") { $settings = Get-Content 'preferences.json' | ConvertFrom-Json }
+    else { write-host "[ERROR]`tpdfconv could not find preferences.json" -ForegroundColor Red ; exit }
 
     while ($true) {
         $pdfc = [System.Collections.ArrayList]@()
@@ -27,11 +26,12 @@ $pdfconv = {
                 cloud = (($chapterqueue.value[$i].clouddir -ne 0) ? "$($chapterqueue.value[$i].clouddir)" : 0)
                 i = $i
             }
-            $pdfc.add($pdfobj)
+            $pdfc.add($pdfobj) | out-null
         }
 
         # Break condition
         if ($pdfc.length -lt 1 -and $incompleteconv -eq 0) {
+            write-host "[INFO]`tpdfconv: Break condition satisfied" -ForegroundColor Blue
             break
         }
 
@@ -41,6 +41,7 @@ $pdfconv = {
             Invoke-Expression "$($using:magickcomm) `"$($_.src)/*.jpg`" $($($using:settings).'manga-quality'.'grayscale' ? `
                 "-colorspace Gray" : " ") -compress JPEG -density 80x `"$($_.dest)`""
             #Invoke-Expression "python.exe -m img2pdf `"$($_.src)/*.jpg`" -o `"$($_.dest)`""        # proposing new method of PDF making, to be tested, requires python
+            Write-Host "[DEBUG]`tFinished saving PDF `"$($_.dest)`"" -ForegroundColor Green
             if ($_.cloud -ne 0) { Copy-Item "$($_.dest)" "$($_.cloud)" }
             remove-item "$($_.src)" -Recurse
             $($using:chapterqueue).value[$_.i].pdfmade = $true

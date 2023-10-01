@@ -5,12 +5,10 @@
     param(
         [ref]$chapterqueue
     )
-    write-host "`n`nHIIIIII`n`n"
 
     $settings | Out-Null
-    if (Test-Path "../preferences.json") { $settings = Get-Content '../preferences.json' | ConvertFrom-Json }
-    elseif (Test-Path "../../preferences.json") { $settings = Get-Content '../../preferences.json' | ConvertFrom-Json }
-    else { write-host "i am confusion." ; exit }
+    if (Test-Path "preferences.json") { $settings = Get-Content 'preferences.json' | ConvertFrom-Json }
+    else { write-host "[ERROR]`tpdfconv could not find preferences.json" -ForegroundColor Red ; exit }
 
 
     $baseUr = "https://uploads.mangadex.org"
@@ -44,19 +42,22 @@
 
     $j = 0
     foreach ($chapter in $chapterqueue.value) {
+        if (-not(Test-Path $chapter.outdir)) {
+            write-host "[INFO]`tCreated $($chapter.outdir)" -ForegroundColor Blue
+            mkdir $chapter.outdir | out-null
+        }
+
         $i = 0
         foreach ($img in $chapter.images) {
+            $fullpath = $(resolve-path $chapter.outdir).Path
             $newimg = [PSCustomObject]@{
                 img = "$baseUr/data/$($chapter.hash)/$img"
-                out = "$($chapter.outdir)/$(Add-Zeroes $i $chapter.total).png"
-                dst = "$($chapter.outdir)/$(Add-Zeroes $i $chapter.total).jpg"
+                out = "$fullpath/$(Add-Zeroes $i $chapter.total).png"
+                dst = "$fullpath/$(Add-Zeroes $i $chapter.total).jpg"
                 index = $j
             }
-            $imglist.Add($newimg)
+            $imglist.Add($newimg) | out-null
             $i++
-        }
-        if (-not(Test-Path $chapter.outdir)) {
-            mkdir $chapter.outdir | out-null
         }
         $j++
     }
@@ -79,9 +80,17 @@
         }
         
         if ($($using:mutex)['Mutex'].WaitOne()) {
-            ($using:chapterqueue).value[$_.index].toconv.add($toconvobj)
-            ($using:chapterqueue).value[$_.index].dlcomp.add($dldoneobj)
+            ($using:chapterqueue).value[$_.index].toconv.add($toconvobj) | out-null
+            ($using:chapterqueue).value[$_.index].dlcomp.add($dldoneobj) | out-null
             $($using:mutex)['Mutex'].ReleaseMutex()
         }
+
+        write-host "[DEBUG]`tFinished downloading $($_.img) to $($_.out)" -ForegroundColor Green
     }
+
+    $cnt = 0
+    $chapterqueue.value | foreach-object {
+        $cnt += $_.dlcomp.length.length
+    }
+    write-host "[INFO]`tFinished downloading $cnt images." -ForegroundColor Blue
 }

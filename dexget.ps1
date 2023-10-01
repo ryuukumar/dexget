@@ -160,7 +160,10 @@ else {
 		$settings | ConvertTo-Json | Out-File 'preferences.json'
 		exit
 	}
-	write-host "$($settings | ConvertTo-Json)"
+}
+
+if ($settings.'general'.'debug-mode') {
+	write-host "DexGet is running in Debug mode. It will be very verbose!`nYou can disable this by changing General > Debug Mode setting." -ForegroundColor Blue
 }
 
 
@@ -400,23 +403,30 @@ function queue-chapter {
 }
 
 function download-queue {
-	write-host "`n`n"
-	$imgdljob = Start-ThreadJob -ScriptBlock $imgdl -ArgumentList ([ref]$chapterqueue)
-	$imgconvjob = Start-ThreadJob -ScriptBlock $imgconv -ArgumentList ([ref]$chapterqueue)
-	$pdfconvjob = Start-ThreadJob -ScriptBlock $pdfconv -ArgumentList ([ref]$chapterqueue)
-	& $progdisp ([ref]$chapterqueue)
+	write-host "`n"
+	if ($settings.'general'.'debug-mode' -eq $false) {
+		$imgdljob = Start-ThreadJob -ScriptBlock $imgdl -ArgumentList ([ref]$chapterqueue)
+		$imgconvjob = Start-ThreadJob -ScriptBlock $imgconv -ArgumentList ([ref]$chapterqueue)
+		$pdfconvjob = Start-ThreadJob -ScriptBlock $pdfconv -ArgumentList ([ref]$chapterqueue)
+		& $progdisp ([ref]$chapterqueue)
+	} else {
+		Write-Box "Starting download process."
+		& $imgdl ([ref]$chapterqueue)
+
+		Write-Box "Downloads complete.`nStarting conversions."
+		& $imgconv ([ref]$chapterqueue)
+		
+		Write-Box "Conversions complete.`nStarting PDF generation."
+		& $pdfconv ([ref]$chapterqueue)
+	}
 	write-host ""
 }
 
 
 #  7. GET THE ACTUAL CHAPTER
 
-$originaldir = Get-Location
-
 try {
 	Write-Host ""
-
-	Set-Location $settings.'general'.'manga-save-directory'
 
 	if (($chpindex) -lt $chapters.length) {
 		$choice = ($argsettings.all `
@@ -435,7 +445,7 @@ try {
 		if (-not ($choice -eq "Y" -or $choice -eq "y" -or $choice -eq "S" -or $choice -eq "s")) { 
 			queue-chapter $chapters[$chpindex].id `
 				-title "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" `
-				-outdir "$(Get-Location)/$($chapters[$chpindex].id)" `
+				-outdir "$($settings.'general'.'manga-save-directory')/$($chapters[$chpindex].id)" `
 				-cloudd (($clchoice -eq 'y' -or $clchoice -eq 'Y') ? "$($settings.'general'.'cloud-save-directory')" : 0)			
 			write-host ""
 			Write-Box "Starting 1 download task." -fgcolor Blue
@@ -455,8 +465,7 @@ try {
 			} else { [int]$last = $chapters.length }
 
 			$mangadir = "(Manga) ${mangatitle}"
-			if (!(Test-Path $mangadir)) { mkdir $mangadir | out-null }
-			Set-Location "$(Get-Location)/${mangadir}"
+			if (!(Test-Path "$($settings.'general'.'manga-save-directory')/$mangadir")) { mkdir $mangadir | out-null }
 
 			write-host ""
 			Write-Box "Queueing $($last - $chpindex) download tasks." -fgcolor Blue
@@ -471,11 +480,17 @@ try {
 			for ($i=$chpindex; $i -lt $last; $i++) {
 				queue-chapter $chapters[$i].id `
 					-title "($($chapters[$i].attributes.chapter)) ${mangatitle}.pdf" `
-					-outdir "$(Get-Location)/$($chapters[$i].id)" `
+					-outdir "$($settings.'general'.'manga-save-directory')/${mangadir}/$($chapters[$i].id)" `
 					-cloudd (($clchoice -eq 'y' -or $clchoice -eq 'Y') ? "$($settings.'general'.'cloud-save-directory')/$mangadir" : 0)
 				if (($clchoice -eq 'y' -or $clchoice -eq 'Y') -and -not (test-path "$($settings.'general'.'cloud-save-directory')/$mangadir"))
 				{ mkdir "$($settings.'general'.'cloud-save-directory')/$mangadir" | out-null }
-				write-host "Queued chapter $($chapters[$i].attributes.chapter) ($($i-$chpindex+1))    `r" -NoNewline
+
+				if ($settings.'general'.'debug-mode' -eq $false) {
+					write-host "Queued chapter $($chapters[$i].attributes.chapter) ($($i-$chpindex+1))    `r" -NoNewline
+				} else {
+					write-host "[DEBUG]`tQueued chapter count $($i-$chpindex+1) from https://mangadex.org/chapter/$($chapters[$i].id)" -ForegroundColor Green
+				}
+
 				if (((($i-$chpindex+1) / 20) -eq [int](($i-$chpindex+1) / 20)) -and $i -ne $chpindex) {
 					$startdate = (Get-Date)
 					download-queue
@@ -499,8 +514,6 @@ try {
 			Write-Host ""
 		}
 
-		Set-Location ".."
-
 		Write-Box "All download tasks completed." -fgcolor Green
 	}
 }
@@ -510,10 +523,7 @@ catch {
 }
 
 finally {
-	Set-Location $originaldir
 	Write-Host "`nExiting. $_"
-
-	#exit
 }
 
 
@@ -525,7 +535,6 @@ finally {
 #---------------------------------------#
 
 
-Set-Location $originaldir
 $settings | ConvertTo-Json | Out-File 'preferences.json'
 
 exit

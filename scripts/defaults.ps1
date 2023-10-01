@@ -40,6 +40,7 @@ function ConvertTo-Hashtable {
 		'manga-save-directory' = "Manga"
 		'cloud-save-directory' = ""
 		'update-on-launch' = $false
+		'debug-mode' = $false
 	}
 	'performance' = @{
 		'maximum-simultaneous-downloads' = 25
