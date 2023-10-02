@@ -8,7 +8,7 @@
 
     $settings | Out-Null
     if (Test-Path "preferences.json") { $settings = Get-Content 'preferences.json' | ConvertFrom-Json }
-    else { write-host "[ERROR]`tpdfconv could not find preferences.json" -ForegroundColor Red ; exit }
+    else { write-dbg "imgconv could not find preferences.json" -level "error" ; exit }
 
     while ($true) {
         $imgconv = [System.Collections.ArrayList]@()
@@ -26,7 +26,7 @@
 
         # break condition
         if ($incompletedl -eq 0 -and $imgconv.length -lt 1) { 
-            write-host "[INFO]`timgconv: Break condition satisfied" -ForegroundColor Blue
+            write-dbg "imgconv: Break condition satisfied" -level "info"
             break
         }
 
@@ -55,7 +55,7 @@
 
         # convert images
         if ($imgconv.length -gt 0) {
-            write-host "[INFO]`tFound $($imgconv.length.length) images to convert" -ForegroundColor Blue
+            write-dbg "Found $($imgconv.length.length) images to convert" -level "info"
         }
 
         $mutex = [hashtable]::Synchronized(@{
@@ -64,7 +64,12 @@
 
         $imgconv | ForEach-Object -throttlelimit $settings.'performance'.'maximum-simultaneous-conversions' -Parallel {
             Invoke-Expression "$($using:magickcomm) `"$($_.src)[0]`" -resize $($($using:settings).'manga-quality'.'page-width')x $($using:magickargs) `"$($_.dest)`""
-            write-host "[DEBUG] Finished converting `"$($_.src)[0]`" to `"$($_.dest)`"" -ForegroundColor Green
+
+            $debugmode = ($using:settings).'general'.'debug-mode'
+            if ($debugmode) {                   # fuck you powershell why don't you let me use write-dbg here you ginormous piece of shit
+                Write-Host "[DEBUG]`t`tFinished converting $($_.src)`n`t`tto $($_.dest)" -ForegroundColor Green
+            }
+
             if ($($using:mutex)['Mutex'].WaitOne()) {
                 ($using:chapterqueue).Value[$_.index].convcomp++
                 remove-item "$($_.src)"
@@ -74,7 +79,7 @@
 
         # if we didn't convert any images, wait
         if ($imgconv.length -lt 1) {
-            write-host "[INFO] Nothing to convert" -ForegroundColor Blue
+            write-dbg "Nothing to convert" -level "info"
             Start-Sleep -Milliseconds 100
         }
     }

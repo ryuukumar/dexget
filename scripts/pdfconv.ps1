@@ -8,7 +8,7 @@ $pdfconv = {
 
     $settings | Out-Null
     if (Test-Path "preferences.json") { $settings = Get-Content 'preferences.json' | ConvertFrom-Json }
-    else { write-host "[ERROR]`tpdfconv could not find preferences.json" -ForegroundColor Red ; exit }
+    else { write-dbg "pdfconv could not find preferences.json" -level "error" ; exit }
 
     while ($true) {
         $pdfc = [System.Collections.ArrayList]@()
@@ -31,7 +31,7 @@ $pdfconv = {
 
         # Break condition
         if ($pdfc.length -lt 1 -and $incompleteconv -eq 0) {
-            write-host "[INFO]`tpdfconv: Break condition satisfied" -ForegroundColor Blue
+            write-dbg "pdfconv: Break condition satisfied" -level "info"
             break
         }
 
@@ -47,7 +47,11 @@ $pdfconv = {
                     "-C L" : " ") -o `"$($_.dest)`""
             }
 
-            Write-Host "[DEBUG]`tFinished saving PDF `"$($_.dest)`"" -ForegroundColor Green
+            $debugmode = ($using:settings).'general'.'debug-mode'
+            if ($debugmode) {                   # fuck you powershell why don't you let me use write-dbg here you ginormous piece of shit
+                Write-Host "[DEBUG]`t`tFinished saving PDF `"$($_.dest)`"" -ForegroundColor Green
+            }
+
             if ($_.cloud -ne 0) { Copy-Item "$($_.dest)" "$($_.cloud)" }
             remove-item "$($_.src)" -Recurse
             $($using:chapterqueue).value[$_.i].pdfmade = $true

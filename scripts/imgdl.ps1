@@ -8,7 +8,7 @@
 
     $settings | Out-Null
     if (Test-Path "preferences.json") { $settings = Get-Content 'preferences.json' | ConvertFrom-Json }
-    else { write-host "[ERROR]`tpdfconv could not find preferences.json" -ForegroundColor Red ; exit }
+    else { write-dbg "imgdl could not find preferences.json" -level "error" ; exit }
 
 
     $baseUr = "https://uploads.mangadex.org"
@@ -43,7 +43,7 @@
     $j = 0
     foreach ($chapter in $chapterqueue.value) {
         if (-not(Test-Path $chapter.outdir)) {
-            write-host "[INFO]`tCreated $($chapter.outdir)" -ForegroundColor Blue
+            write-dbg "Created $($chapter.outdir)" -level "info"
             mkdir $chapter.outdir | out-null
         }
 
@@ -82,15 +82,19 @@
         if ($($using:mutex)['Mutex'].WaitOne()) {
             ($using:chapterqueue).value[$_.index].toconv.add($toconvobj) | out-null
             ($using:chapterqueue).value[$_.index].dlcomp.add($dldoneobj) | out-null
+
+            $debugmode = ($using:settings).'general'.'debug-mode'
+            if ($debugmode) {                   # fuck you powershell why don't you let me use write-dbg here you ginormous piece of shit
+                Write-Host "[DEBUG]`t`tFinished downloading $($_.img)`n`t`tto $($_.out)" -ForegroundColor Green
+            }
+
             $($using:mutex)['Mutex'].ReleaseMutex()
         }
-
-        write-host "[DEBUG]`tFinished downloading $($_.img) to $($_.out)" -ForegroundColor Green
     }
 
     $cnt = 0
     $chapterqueue.value | foreach-object {
         $cnt += $_.dlcomp.length.length
     }
-    write-host "[INFO]`tFinished downloading $cnt images." -ForegroundColor Blue
+    write-dbg "Finished downloading $cnt images." -level "info"
 }

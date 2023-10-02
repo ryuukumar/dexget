@@ -123,6 +123,7 @@ function Get-ChpIndex {
 #---------------------------------------#
 
 
+. "$PSScriptRoot/scripts/debug.ps1"
 . "$PSScriptRoot/scripts/imgdl.ps1"
 . "$PSScriptRoot/scripts/imgconv.ps1"
 . "$PSScriptRoot/scripts/pdfconv.ps1"
@@ -151,24 +152,26 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 [hashtable]$settings = @{}
 if (-not (Test-Path "preferences.json")) {
 	$defsettings | ConvertTo-Json | Out-File 'preferences.json'
-	write-host "WARNING: preferences.json not found, so it was created with default settings." -ForegroundColor Yellow
+	write-dbg "preferences.json not found, so it was created with default settings." -level "warning"
 }
 else {
 	$settings = ConvertTo-Hashtable (Get-Content 'preferences.json' | ConvertFrom-Json)
 	if (Update-Settings -default $defsettings -current $settings -eq $true) {
-		Write-Host "preferences.json was updated with some new settings. Please rerun DexGet for normal execution." -ForegroundColor Blue
+		write-dbg "preferences.json was updated with some new settings. Please rerun DexGet for normal execution." -level "warning"
 		$settings | ConvertTo-Json | Out-File 'preferences.json'
 		exit
 	}
 }
 
+$debugmode = $settings.'general'.'debug-mode'
+
 if ($settings.'general'.'debug-mode') {
-	write-host "DexGet is running in Debug mode. It will be very verbose!`nYou can disable this by changing General > Debug Mode setting." -ForegroundColor Blue
+	write-dbg "DexGet is running in Debug mode. It will be very verbose!`n`t`tYou can disable this by changing General > Debug Mode setting." -level "info"
 }
 
 if ($settings.'performance'.'pdf-method' -ne "magick" -and
 	$settings.'performance'.'pdf-method' -ne "pypdf") {
-	write-host "Invalid setting for Performance > PDF Method: $($settings.'performance'.'pdf-method')`nThe only accepted settings are 'magick' and 'pypdf'.`nSwitching to default." -ForegroundColor Yellow
+	write-dbg "Invalid setting for Performance > PDF Method: $($settings.'performance'.'pdf-method')`nThe only accepted settings are 'magick' and 'pypdf'.`nSwitching to default." -level "error"
 	$settings.'performance'.'pdf-method' = $defsettings.'performance'.'pdf-method'
 }
 
@@ -176,7 +179,7 @@ if ($settings.'performance'.'pdf-method' -ne "magick" -and
 #  1.1. UPDATE
 
 if ($settings.'general'.'update-on-launch' -eq $true) {
-	write-host "Update on launch is set to enabled. If there is an updated version, it will run at the next run of DexGet." -ForegroundColor Blue
+	write-dbg "Update on launch is set to enabled. If there is an updated version, it will run at the next run of DexGet." -level "info"
 	git pull
 }
 
@@ -208,7 +211,7 @@ while ($true) {
 		}
 		if ($args[$i] -eq "--cloud" -or $args[$i] -eq "-C") {
 			if ($settings.'general'.'enable-cloud-saving' -eq $false) {
-				write-host "WARNING: --cloud was passed but cloud saving is disabled in the preferences. The argument will be ignored." -ForegroundColor Yellow
+				write-dbg "--cloud was passed but cloud saving is disabled in the preferences. The argument will be ignored." -level "warning"
 			} else {
 				$argsettings.cloud = $true
 			}
@@ -481,7 +484,7 @@ try {
 			}
 			
 			if ($settings.'general'.'debug-mode' -eq $true) {
-				write-host "[INFO]`tOutput directory for manga set to $((resolve-path "$($settings.'general'.'manga-save-directory')/$mangadir").Path)." -ForegroundColor Blue
+				write-dbg "Output directory for manga set to $((resolve-path "$($settings.'general'.'manga-save-directory')/$mangadir").Path)." -level "info"
 			}
 
 			write-host ""
@@ -505,7 +508,7 @@ try {
 				if ($settings.'general'.'debug-mode' -eq $false) {
 					write-host "Queued chapter $($chapters[$i].attributes.chapter) ($($i-$chpindex+1))    `r" -NoNewline
 				} else {
-					write-host "[DEBUG]`tQueued chapter count $($i-$chpindex+1) from https://mangadex.org/chapter/$($chapters[$i].id)" -ForegroundColor Green
+					write-dbg "Queued chapter count $($i-$chpindex+1) from https://mangadex.org/chapter/$($chapters[$i].id)" -level "debug"
 				}
 
 				if (((($i-$chpindex+1) / 20) -eq [int](($i-$chpindex+1) / 20)) -and $i -ne $chpindex) {
