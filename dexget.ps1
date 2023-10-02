@@ -166,6 +166,12 @@ if ($settings.'general'.'debug-mode') {
 	write-host "DexGet is running in Debug mode. It will be very verbose!`nYou can disable this by changing General > Debug Mode setting." -ForegroundColor Blue
 }
 
+if ($settings.'performance'.'pdf-method' -ne "magick" -and
+	$settings.'performance'.'pdf-method' -ne "pypdf") {
+	write-host "Invalid setting for Performance > PDF Method: $($settings.'performance'.'pdf-method')`nThe only accepted settings are 'magick' and 'pypdf'.`nSwitching to default." -ForegroundColor Yellow
+	$settings.'performance'.'pdf-method' = $defsettings.'performance'.'pdf-method'
+}
+
 
 #  1.1. UPDATE
 
@@ -361,6 +367,7 @@ else {
 if ($chpindex -eq -1) {
 	write-host "ERROR: " -NoNewline -ForegroundColor Red
 	Write-Host "No chapter found with chapter number $chpnum!"
+	exit
 }
 
 
@@ -442,7 +449,11 @@ try {
 		}
 		
 
-		if (-not ($choice -eq "Y" -or $choice -eq "y" -or $choice -eq "S" -or $choice -eq "s")) { 
+		if (-not ($choice -eq "Y" -or $choice -eq "y" -or $choice -eq "S" -or $choice -eq "s")) {
+			if ($settings.'general'.'debug-mode' -eq $true) {
+				write-host "[INFO]`tOutput directory for manga set to $((resolve-path $settings.'general'.'manga-save-directory').Path)." -ForegroundColor Blue
+			}
+
 			queue-chapter $chapters[$chpindex].id `
 				-title "($($chapters[$chpindex].attributes.chapter)) ${mangatitle}.pdf" `
 				-outdir "$($settings.'general'.'manga-save-directory')/$($chapters[$chpindex].id)" `
@@ -465,7 +476,13 @@ try {
 			} else { [int]$last = $chapters.length }
 
 			$mangadir = "(Manga) ${mangatitle}"
-			if (!(Test-Path "$($settings.'general'.'manga-save-directory')/$mangadir")) { mkdir $mangadir | out-null }
+			if (!(Test-Path "$($settings.'general'.'manga-save-directory')/$mangadir")) {
+				mkdir "$((resolve-path "$($settings.'general'.'manga-save-directory')").Path)/$mangadir" | out-null
+			}
+			
+			if ($settings.'general'.'debug-mode' -eq $true) {
+				write-host "[INFO]`tOutput directory for manga set to $((resolve-path "$($settings.'general'.'manga-save-directory')/$mangadir").Path)." -ForegroundColor Blue
+			}
 
 			write-host ""
 			Write-Box "Queueing $($last - $chpindex) download tasks." -fgcolor Blue

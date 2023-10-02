@@ -46,6 +46,7 @@ function ConvertTo-Hashtable {
 		'maximum-simultaneous-downloads' = 25
 		'maximum-simultaneous-conversions' = 1
 		'maximum-simultaneous-pdf-conversions' = 1
+		'pdf-method' = 'magick'
 	}
 	'manga-quality' = @{
 		'page-width' = 1000

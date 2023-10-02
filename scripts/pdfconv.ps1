@@ -38,9 +38,15 @@ $pdfconv = {
         # Convert images to pdf
         $magickcomm = ($IsLinux ? "convert" : "magick convert")
         $pdfc | ForEach-Object -ThrottleLimit $settings.'performance'.'maximum-simultaneous-pdf-conversions' -parallel {
-            Invoke-Expression "$($using:magickcomm) `"$($_.src)/*.jpg`" $($($using:settings).'manga-quality'.'grayscale' ? `
-                "-colorspace Gray" : " ") -compress JPEG -density 80x `"$($_.dest)`""
-            #Invoke-Expression "python.exe -m img2pdf `"$($_.src)/*.jpg`" -o `"$($_.dest)`""        # proposing new method of PDF making, to be tested, requires python
+            if ($($using:settings).'performance'.'pdf-method' -eq "magick") {
+                Invoke-Expression "$($using:magickcomm) `"$($_.src)/*.jpg`" $($($using:settings).'manga-quality'.'grayscale' ? `
+                    "-colorspace Gray" : " ") -compress JPEG -density 80x `"$($_.dest)`""
+            }
+            elseif ($($using:settings).'performance'.'pdf-method' -eq "pypdf") {
+                Invoke-Expression "python.exe -m img2pdf `"$($_.src)/*.jpg`" $($($using:settings).'manga-quality'.'grayscale' ? `
+                    "-C L" : " ") -o `"$($_.dest)`""
+            }
+
             Write-Host "[DEBUG]`tFinished saving PDF `"$($_.dest)`"" -ForegroundColor Green
             if ($_.cloud -ne 0) { Copy-Item "$($_.dest)" "$($_.cloud)" }
             remove-item "$($_.src)" -Recurse
