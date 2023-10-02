@@ -18,6 +18,8 @@ For now, you need to have available the following software on your device. You m
 |--|--|
 | PowerShell 7 | https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-windows?view=powershell-7.3 |
 | ImageMagick | https://imagemagick.org/script/download.php |
+| Python (optional) | https://www.python.org/downloads/windows/ |
+| img2pdf for Python (optional) | https://pypi.org/project/img2pdf/ |
 
 ### Linux (any distro)
 
@@ -25,6 +27,8 @@ For now, you need to have available the following software on your device. You m
 |--|--|
 | PowerShell 7 | https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-linux?view=powershell-7.3 |
 | ImageMagick | https://imagemagick.org/script/download.php |
+| Python (optional) | Python is usually installed on Ubuntu. If you're using another distro, I'm sure you already know how to install Python :) |
+| img2pdf for Python (optional) | https://pypi.org/project/img2pdf/ |
 
 
 ### MacOS
@@ -33,6 +37,8 @@ For now, you need to have available the following software on your device. You m
 |--|--|
 | PowerShell 7 | https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-macos?view=powershell-7.3 |
 | ImageMagick | https://imagemagick.org/script/download.php |
+| Python (optional) | https://www.python.org/downloads/macos/ |
+| img2pdf for Python (optional) | https://pypi.org/project/img2pdf/ |
 
 ## Install
 
