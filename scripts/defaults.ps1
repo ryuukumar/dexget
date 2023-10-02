@@ -35,7 +35,7 @@ function ConvertTo-Hashtable {
 
 [hashtable]$defsettings = @{
 	'general' = @{
-		'manga-language' = "ru"
+		'manga-language' = "en"
 		'enable-cloud-saving' = $false
 		'manga-save-directory' = "Manga"
 		'cloud-save-directory' = ""
