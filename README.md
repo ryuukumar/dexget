@@ -1,15 +1,35 @@
 # DexGet
-Script to pull manga off of MangaDex
+Script to pull manga off of MangaDex.
 
-To run, go to the folder which contains DexGet and type:
+To run, go to the folder which contains DexGet and type (in PowerShell Terminal):
 
 ```
 ./dexget.ps1 <manga-link>
 ```
 
-Make sure that the manga link you paste contains the manga ID! This is a manga ID: 32d76d19-8a05-4db0-9fc2-e0b0648fe9d0
+Make sure that the manga link you paste contains the manga ID! This is a manga ID: `32d76d19-8a05-4db0-9fc2-e0b0648fe9d0`
+
+Also available:
+
+- `update.ps1`: Based on manga links you save in `notepad.txt`, it will simply download all the latest chapters after the currently saved ones.
+- `clean.ps1`: When you have finished reading some manga but you want to download all new updates to the manga (with `update.ps1`) and delete everything you already read, use this to remove all chapters except the latest for ALL manga in the save directory.
+
+## Installation
+
+Read [INSTALL.md](INSTALL.md) for install instructions.
+
+## Configuration and Settings
+
+Read [SETTINGS.md](SETTINGS.md) for configuration instructions and a brief on settings.
 
 ## What's new?
+
+### v1.3
+v1.3 gives you more control over your downloads, by implementing easier to change settings. It allows you to select page width in pixels, force grayscale and select quality levels - high, medium and low.
+
+Further, large strides have been made in enabling cross-platform operation, so it is now possible to run DexGet on Windows, Linux and MacOS (note that other OSs may have questionable stability).
+
+There are further stability updates which you may check on PR [#2](https://github.com/ryuukumar/dexget/pull/2).
 
 ### v1.2
 v1.2 introduces batch downloading - where chapters are downloaded all together instead of separately. This approach has been noted (on personal tests) to cache manga on the local drive as a PDF upto 4x faster than v1.1.

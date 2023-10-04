@@ -4,4 +4,5 @@ exetest
 test
 versions
 *.txt
+*.json
 updates.txt

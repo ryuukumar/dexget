@@ -1,32 +1,72 @@
 
 
-# relative to current directory
-$savedir = "Manga"
+#
+#	CLEAN.PS1
+#	A supplementary script to update.ps1 and dexget.ps1 to remove old downloads.
+#	Author: @ryuukumar (https://github.com/ryuukumar)
+#
 
-function Format-Filesize([int]$length) {
-	if ($length -lt 1000) {
-		return "$length bytes"
-	}
-	elseif ($length -lt 1MB) {
-		return "{0:N0} KB" -f ($length/1KB)
-	}
-	else {
-		return "{0:N2} MB" -f ($length/1MB)
+
+
+
+
+#---------------------------------------#
+#  FUNCTIONS                            #
+#---------------------------------------#
+
+
+. "$PSScriptRoot/scripts/functions.ps1"
+. "$PSScriptRoot/scripts/defaults.ps1"
+. "$PSScriptRoot/scripts/debug.ps1"
+
+
+
+
+
+#---------------------------------------#
+#  ENTRY POINT                          #
+#---------------------------------------#
+
+
+#  0. LOAD SETTINGS
+
+[hashtable]$settings = @{}
+if (-not (Test-Path "preferences.json")) {
+	$defsettings | ConvertTo-Json | Out-File 'preferences.json'
+	write-dbg "preferences.json not found, so it was created with default settings." -level "warning"
+}
+else {
+	$settings = ConvertTo-Hashtable (Get-Content 'preferences.json' | ConvertFrom-Json)
+	if (Update-Settings -default $defsettings -current $settings -eq $true) {
+		write-dbg "preferences.json was updated with some new settings. Please rerun DexGet for normal execution." -level "warning"
+		$settings | ConvertTo-Json | Out-File 'preferences.json'
+		exit
 	}
 }
+
+$savedir = (Resolve-Path $settings.'general'.'manga-save-directory').Path
+
+$sep = '/'
+$fsep = '/'
+
+if ($IsWindows) { $sep = '\' ; $fsep = '\\' }
+
+
+#  1. BUILD CLEAN LIST
 
 $tbd = [System.Collections.ArrayList]@()
 [System.Int128]$dellen = 0
 [System.Int128]$keeplen = 0
 
-write-host -NoNewline "Scanning $(Get-Location)\$savedir... "
+write-host -NoNewline "Scanning $savedir... "
 Get-ChildItem "$savedir" | ForEach-Object {
-	if (((($_ -split ' ')[0]) -eq "$(get-location)\$savedir\(Manga)") -and (test-path $_ -PathType Container)) {
+	if (((($_ -split ' ')[0]) -eq "$savedir$sep(Manga)") -and (test-path $_ -PathType Container)) {
 		$files = $(Get-ChildItem "$_")
 		$filenos = [System.Collections.ArrayList]@()
 
 		foreach ($file in $files.name) {
 			[double]$chnum = (($file -split "\)")[0]) -replace '[^0-9.]',''
+			if ($chnum -ge 1E+10) { continue }
 			$filenos.add($chnum) | out-null
 		}
 		
@@ -34,8 +74,6 @@ Get-ChildItem "$savedir" | ForEach-Object {
 		$filenos.remove($lastch)
 		$secondlastch = [double](($filenos | Measure-Object -Maximum).Maximum)
 		$firstch = [double](($filenos | Measure-Object -Minimum).Minimum)
-
-		#write-host "$_ : $lastch"
 
 		$log = [PSCustomObject]@{
 			keepnum = $lastch
@@ -52,18 +90,17 @@ Get-ChildItem "$savedir" | ForEach-Object {
 		foreach($file in $files.name) {
 			[double]$chnum = (($file -split "\)")[0]) -replace '[^0-9.]',''
 			if ($chnum -ne $lastch) {
-				#write-host "`tSchedule $file for deletion."
 				$log.del.add([PSCustomObject]@{
 					number = $chnum
-					path = "$_\$file"
+					path = "$_$sep$file"
 				}) | out-null
-				$dellen += [System.Int128]((Get-Item "$_\$file").Length)
-				$log.dellen += [System.Int128]((Get-Item "$_\$file").Length)
+				$dellen += [System.Int128]((Get-Item "$_$sep$file").Length)
+				$log.dellen += [System.Int128]((Get-Item "$_$sep$file").Length)
 			}
 			else {
-				$log.keeppath = "$_\$file"
-				$keeplen += [System.Int128]((Get-Item "$_\$file").Length)
-				$log.keeplen += [System.Int128]((Get-Item "$_\$file").Length)
+				$log.keeppath = "$_$sep$file"
+				$keeplen += [System.Int128]((Get-Item "$_$sep$file").Length)
+				$log.keeplen += [System.Int128]((Get-Item "$_$sep$file").Length)
 			}
 		}
 
@@ -75,6 +112,9 @@ write-host "done." -ForegroundColor Green
 
 write-host -NoNewline "$($tbd.length.length) " -ForegroundColor Yellow
 write-host "manga found."
+
+
+#  2. FORMALISE CLEAN LIST
 
 $del = [System.Collections.ArrayList]@()
 $keep = [System.Collections.ArrayList]@()
@@ -95,8 +135,8 @@ if ($del.length.length -eq 0) {
 
 $maxlen_of_filename = 0
 $tbd | ForEach-Object {
-	if (($_.mangapath -split "\\")[-1].length -gt $maxlen_of_filename) {
-		$maxlen_of_filename = ($_.mangapath -split "\\")[-1].length
+	if (($_.mangapath -split "$fsep")[-1].length -gt $maxlen_of_filename) {
+		$maxlen_of_filename = ($_.mangapath -split "$fsep")[-1].length
 	}
 }
 
@@ -105,8 +145,8 @@ write-host "kept" -ForegroundColor Green
 
 $tbd | ForEach-Object {
 	write-host "  " -NoNewline
-	write-host "$(($_.mangapath -split "\\")[-1])" -NoNewline -ForegroundColor Cyan
-	write-host (" " * (($maxlen_of_filename-($_.mangapath -split "\\")[-1].length)+2)) -NoNewline
+	write-host "$(($_.mangapath -split "$fsep")[-1])" -NoNewline -ForegroundColor Cyan
+	write-host (" " * (($maxlen_of_filename-($_.mangapath -split "$fsep")[-1].length)+2)) -NoNewline
 	write-host " Chapter $($_.keepnum)" -ForegroundColor Green -NoNewline
 	write-host (" " * (10-([string]($_.keepnum)).length)) -NoNewline
 	write-host "$(Format-Filesize $_.keeplen)" -ForegroundColor Yellow
@@ -118,8 +158,8 @@ write-host "permanently deleted" -ForegroundColor Red
 $tbd | ForEach-Object {
 	if ($_.del.length.length -ge 1) {
 		write-host "  " -NoNewline
-		write-host "$(($_.mangapath -split "\\")[-1])" -NoNewline -ForegroundColor Cyan
-		write-host (" " * (($maxlen_of_filename-($_.mangapath -split "\\")[-1].length)+2)) -NoNewline
+		write-host "$(($_.mangapath -split "$fsep")[-1])" -NoNewline -ForegroundColor Cyan
+		write-host (" " * (($maxlen_of_filename-($_.mangapath -split "$fsep")[-1].length)+2)) -NoNewline
 		write-host " Chapters $($_.first) - $($_.secondlast)" -NoNewline -ForegroundColor Red
 		write-host (" " * (15-"$($_.first) - $($_.secondlast)".Length)) -NoNewline
 		write-host "$($_.del.length.length) files `t$(Format-Filesize $_.dellen)" -ForegroundColor Yellow
@@ -132,6 +172,9 @@ write-host ", and there will be " -NoNewline
 write-host "no way to restore deleted files" -NoNewline -ForegroundColor Red
 write-host " after this operation."
 $continue = Read-Host "Do you want to continue? [Y/n]"
+
+
+#  3. PERFORM CLEAN
 
 if ($continue -eq "y" -or $continue -eq "Y") {
 	$del | ForEach-Object {
@@ -166,3 +209,12 @@ if ($continue -eq "y" -or $continue -eq "Y") {
 else {
 	write-host "Aborting."
 }
+
+
+
+
+
+#---------------------------------------#
+#  EXIT                                 #
+#---------------------------------------#
+
