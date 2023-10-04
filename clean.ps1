@@ -1,23 +1,58 @@
 
 
-# relative to current directory
-$savedir = "Manga"
+#
+#	CLEAN.PS1
+#	A supplementary script to update.ps1 and dexget.ps1 to remove old downloads.
+#	Author: @ryuukumar (https://github.com/ryuukumar)
+#
+
+
+
+
+
+#---------------------------------------#
+#  FUNCTIONS                            #
+#---------------------------------------#
+
+
+. "$PSScriptRoot/scripts/functions.ps1"
+. "$PSScriptRoot/scripts/defaults.ps1"
+. "$PSScriptRoot/scripts/debug.ps1"
+
+
+
+
+
+#---------------------------------------#
+#  ENTRY POINT                          #
+#---------------------------------------#
+
+
+#  0. LOAD SETTINGS
+
+[hashtable]$settings = @{}
+if (-not (Test-Path "preferences.json")) {
+	$defsettings | ConvertTo-Json | Out-File 'preferences.json'
+	write-dbg "preferences.json not found, so it was created with default settings." -level "warning"
+}
+else {
+	$settings = ConvertTo-Hashtable (Get-Content 'preferences.json' | ConvertFrom-Json)
+	if (Update-Settings -default $defsettings -current $settings -eq $true) {
+		write-dbg "preferences.json was updated with some new settings. Please rerun DexGet for normal execution." -level "warning"
+		$settings | ConvertTo-Json | Out-File 'preferences.json'
+		exit
+	}
+}
+
+$savedir = $settings.'general'.'manga-save-directory'
+
 $sep = '/'
 $fsep = '/'
 
 if ($IsWindows) { $sep = '\' ; $fsep = '\\' }
 
-function Format-Filesize([int]$length) {
-	if ($length -lt 1000) {
-		return "$length bytes"
-	}
-	elseif ($length -lt 1MB) {
-		return "{0:N0} KB" -f ($length/1KB)
-	}
-	else {
-		return "{0:N2} MB" -f ($length/1MB)
-	}
-}
+
+#  1. BUILD CLEAN LIST
 
 $tbd = [System.Collections.ArrayList]@()
 [System.Int128]$dellen = 0
@@ -39,8 +74,6 @@ Get-ChildItem "$savedir" | ForEach-Object {
 		$secondlastch = [double](($filenos | Measure-Object -Maximum).Maximum)
 		$firstch = [double](($filenos | Measure-Object -Minimum).Minimum)
 
-		#write-host "$_ : $lastch"
-
 		$log = [PSCustomObject]@{
 			keepnum = $lastch
 			keeppath = ""
@@ -56,7 +89,6 @@ Get-ChildItem "$savedir" | ForEach-Object {
 		foreach($file in $files.name) {
 			[double]$chnum = (($file -split "\)")[0]) -replace '[^0-9.]',''
 			if ($chnum -ne $lastch) {
-				#write-host "`tSchedule $file for deletion."
 				$log.del.add([PSCustomObject]@{
 					number = $chnum
 					path = "$_$sep$file"
@@ -79,6 +111,9 @@ write-host "done." -ForegroundColor Green
 
 write-host -NoNewline "$($tbd.length.length) " -ForegroundColor Yellow
 write-host "manga found."
+
+
+#  2. FORMALISE CLEAN LIST
 
 $del = [System.Collections.ArrayList]@()
 $keep = [System.Collections.ArrayList]@()
@@ -137,6 +172,9 @@ write-host "no way to restore deleted files" -NoNewline -ForegroundColor Red
 write-host " after this operation."
 $continue = Read-Host "Do you want to continue? [Y/n]"
 
+
+#  3. PERFORM CLEAN
+
 if ($continue -eq "y" -or $continue -eq "Y") {
 	$del | ForEach-Object {
 		if (Test-Path "$_" -PathType leaf) {
@@ -170,3 +208,12 @@ if ($continue -eq "y" -or $continue -eq "Y") {
 else {
 	write-host "Aborting."
 }
+
+
+
+
+
+#---------------------------------------#
+#  EXIT                                 #
+#---------------------------------------#
+
