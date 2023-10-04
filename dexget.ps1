@@ -7,7 +7,7 @@
 #
 
 
-$VERSION = '1.3 β'
+$VERSION = '1.3'
 
 
 
