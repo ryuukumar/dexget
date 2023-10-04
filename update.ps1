@@ -10,5 +10,5 @@ if (-not(Test-Path "$(Get-Location)/updates.txt")) {
 $file = Get-Content "$(Get-Location)/updates.txt"
 
 foreach ($line in $file) {
-    ./dexget.ps1 $line -c -a -C
+    ./dexget.ps1 $line -c -a -C --no-banner
 }

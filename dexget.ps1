@@ -234,6 +234,10 @@ if (test-path "$($settings.'general'.'manga-save-directory')/(Manga) ${mangatitl
 
 	foreach ($file in $files.name) {
 		[double]$chnum = (($file -split "\)")[0]) -replace '[^0-9.]',''
+		if ($chnum -ge 1E+10) {
+			write-dbg "There is an incomplete download discovered:`n`t`t$((Resolve-Path "$($settings.'general'.'manga-save-directory')/(Manga) ${mangatitle}/$file").Path)`n`t`tIt is suggested to delete this folder manually." -level "warning"
+			continue
+		}
 		$filenos += $chnum
 	}
 	

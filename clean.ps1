@@ -66,6 +66,7 @@ Get-ChildItem "$savedir" | ForEach-Object {
 
 		foreach ($file in $files.name) {
 			[double]$chnum = (($file -split "\)")[0]) -replace '[^0-9.]',''
+			if ($chnum -ge 1E+10) { continue }
 			$filenos.add($chnum) | out-null
 		}
 		
