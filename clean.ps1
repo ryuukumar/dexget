@@ -44,7 +44,7 @@ else {
 	}
 }
 
-$savedir = $settings.'general'.'manga-save-directory'
+$savedir = (Resolve-Path $settings.'general'.'manga-save-directory').Path
 
 $sep = '/'
 $fsep = '/'
@@ -58,9 +58,9 @@ $tbd = [System.Collections.ArrayList]@()
 [System.Int128]$dellen = 0
 [System.Int128]$keeplen = 0
 
-write-host -NoNewline "Scanning $(Get-Location)$sep$savedir... "
+write-host -NoNewline "Scanning $savedir... "
 Get-ChildItem "$savedir" | ForEach-Object {
-	if (((($_ -split ' ')[0]) -eq "$(get-location)$sep$savedir$sep(Manga)") -and (test-path $_ -PathType Container)) {
+	if (((($_ -split ' ')[0]) -eq "$savedir$sep(Manga)") -and (test-path $_ -PathType Container)) {
 		$files = $(Get-ChildItem "$_")
 		$filenos = [System.Collections.ArrayList]@()
 
