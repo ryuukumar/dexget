@@ -63,10 +63,11 @@ Get-ChildItem "$savedir" | ForEach-Object {
 	if (((($_ -split ' ')[0]) -eq "$savedir$sep(Manga)") -and (test-path $_ -PathType Container)) {
 		$files = $(Get-ChildItem "$_")
 		$filenos = [System.Collections.ArrayList]@()
+		$incompletedls = 0
 
 		foreach ($file in $files.name) {
 			[double]$chnum = (($file -split "\)")[0]) -replace '[^0-9.]',''
-			if ($chnum -ge 1E+10) { continue }
+			if ($chnum -ge 1E+10) { $incompletedls += 1 ; continue }
 			$filenos.add($chnum) | out-null
 		}
 		
@@ -85,6 +86,7 @@ Get-ChildItem "$savedir" | ForEach-Object {
 			first = $firstch
 			files = $files.Name
 			mangapath = [string]$_
+			incompletedl = $incompletedls
 		}
 
 		foreach($file in $files.name) {
@@ -118,6 +120,7 @@ write-host "manga found."
 
 $del = [System.Collections.ArrayList]@()
 $keep = [System.Collections.ArrayList]@()
+$incomplete = 0
 
 $tbd | ForEach-Object {
 	$keep.add($_.keeppath) | out-null
@@ -126,6 +129,7 @@ $tbd | ForEach-Object {
 			$del.add($_.path) | out-null
 		}
 	}
+	$incomplete += $_.incompletedl
 }
 
 if ($del.length.length -eq 0) {
@@ -166,6 +170,22 @@ $tbd | ForEach-Object {
 	}
 }
 
+if ($incomplete -gt 0) {
+	write-host "`nAdditionally, the following $($incomplete) incomplete downloads will be " -NoNewline
+	write-host "permanently deleted" -ForegroundColor Red
+
+	$tbd | ForEach-Object {
+		if ($_.incompletedl -ge 1) {
+			write-host "  " -NoNewline
+			write-host "$(($_.mangapath -split "$fsep")[-1])" -NoNewline -ForegroundColor Cyan
+			write-host (" " * (($maxlen_of_filename-($_.mangapath -split "$fsep")[-1].length)+2)) -NoNewline
+			write-host " $($_.incompletedl) incomplete download(s)" -NoNewline -ForegroundColor Red
+		}
+	}
+
+	write-host ""
+}
+
 write-host "`nThis process is " -NoNewline
 write-host "irreversible" -NoNewline -ForegroundColor Red
 write-host ", and there will be " -NoNewline
@@ -182,10 +202,16 @@ if ($continue -eq "y" -or $continue -eq "Y") {
 			if ($keep.Contains($_)) {
 				write-host "Prevented $_ from being deleted."
 			} else {
-				remove-item "$_"
+				remove-item "$_" -Recurse -Force
 			}
 		} else {
-			write-host "$_ is fake."
+			$dirname = ($_ -split "$fsep")[-1]
+			$hash = ([regex]::Matches($dirname, '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})'))
+			if ($dirname.length -eq 36 -and $hash) {
+				remove-item "$_" -Recurse
+			} else {
+				write-host "$_ is a directory and will not be deleted."
+			}
 		}
 	}
 	$errors = $false
