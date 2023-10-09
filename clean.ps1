@@ -179,7 +179,7 @@ if ($incomplete -gt 0) {
 			write-host "  " -NoNewline
 			write-host "$(($_.mangapath -split "$fsep")[-1])" -NoNewline -ForegroundColor Cyan
 			write-host (" " * (($maxlen_of_filename-($_.mangapath -split "$fsep")[-1].length)+2)) -NoNewline
-			write-host " $($_.incompletedl) incomplete download(s)" -NoNewline -ForegroundColor Red
+			write-host " $($_.incompletedl) incomplete download(s)`n" -NoNewline -ForegroundColor Red
 		}
 	}
 
