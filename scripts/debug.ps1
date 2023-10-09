@@ -12,7 +12,7 @@ function Write-Dbg {
 		if ($debugmode -eq $true) {
 			if ($level -eq "debug") { Write-Host "[DEBUG]`t`t$text" -ForegroundColor Green }
 			else { Write-Host "[INFO]`t`t$text" -ForegroundColor Blue }
-		} else { exit }
+		} else { return }
 	}
 	elseif ($level -eq "warning") { Write-Host "[WARNING]`t$text" -ForegroundColor Yellow }
 	elseif ($level -eq "error") { Write-Host "[ERROR]`t`t$text" -ForegroundColor Red }

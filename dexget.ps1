@@ -203,12 +203,18 @@ $chapters = @()
 [double]$avglen = 0
 
 foreach ($ch in $manga.data) {
-	if ($ch.type -ne "chapter") {
+	if ($ch.type -ne "chapter") {		# not a chapter
 		continue
 	}
-	if ($chapters.attributes.chapter -contains $ch.attributes.chapter) {
+	if ($null -ne $ch.attributes.externalUrl) {    # external chapter
+		write-dbg "Found external link for chapter $($ch.attributes.chapter):`n`t`t$($ch.attributes.externalUrl)" -level "debug"
 		continue
 	}
+	if ($chapters.attributes.chapter -contains $ch.attributes.chapter) {    # chapter already processed
+		continue
+	}
+
+	# fresh chapter which we can download, so add it
 	$chapters += $ch
 	$avglen += $ch.attributes.pages
 }
