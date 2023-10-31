@@ -34,10 +34,17 @@ if (-not(Test-Path "$(Get-Location)/updates.txt")) {
 }
 
 $file = Get-Content "$(Get-Location)/updates.txt"
+write-box "Found $($file.length) manga to try updating." -fgcolor yellow
 
+$i = 1
 foreach ($line in $file) {
+    write-host "$i of $($file.length)" -ForegroundColor red
     ./dexget.ps1 $line -c -a -C --no-banner     # leap of faith
+    write-host ""
+    $i++
 }
+
+write-box "Updated all manga." -fgcolor green
 
 
 
