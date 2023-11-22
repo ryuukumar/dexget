@@ -220,11 +220,13 @@ foreach ($ch in $manga.data) {
 }
 
 $avglen = $avglen / $chapters.length
+$latest = [double](($chapters.attributes.chapter | Measure-Object -Maximum).Maximum)
 
 Write-Host "Scan results:"
 Write-Host " - Found $($chapters.length) chapters." -ForegroundColor Green
 Write-Host " - About $(`"{0:n1}`" -f $avglen) pages per chapter." -ForegroundColor Green
 Write-Host " - First chapter number: $($chapters[0].attributes.chapter)" -ForegroundColor Green
+Write-Host " - Latest available chapter: $latest" -ForegroundColor Green
 
 $chpindex = 0
 $chpnum = 0
@@ -250,7 +252,26 @@ if (test-path "$($settings.'general'.'manga-save-directory')/(Manga) ${mangatitl
 	$lastch = [double](($filenos | Measure-Object -Maximum).Maximum)
 	$chindex = get-chpindex ([ref]$chapters) $lastch
 
-	if ($chindex -eq $chapters.length - 1) {
+	if ($chindex -eq -1) {
+		write-dbg "The latest chapter downloaded ($lastch) is no longer available. The current latest chapter is $latest." -level "warning"
+		write-dbg "This is either a result of broken downloads or a rollback on MangaDex. It is strongly recommended to manually fix this download before proceeding." -level "warning"
+		$redown = ($argsettings.continue `
+					? 'y' `
+					: (Read-Host "The MangaDex release has older chapters. Would you like to download the currently available latest chapter? [Y/n]"))
+		if ($redown -eq 'Y' -or $redown -eq 'y') {
+			$chpindex = get-chpindex ([ref]$chapters) $latest
+		}
+		else {
+			Write-Host "Nothing to download. Exiting."
+			exit
+		}
+
+		if ($argsettings.continue) {
+			write-dbg "DexGet will download chapter $latest, but it will not delete any chapters after $latest including $lastch." -level "warning"
+		}
+	}
+
+	elseif ($chindex -eq $chapters.length - 1) {
 		$redown = ($argsettings.continue `
 						? 'n' `
 						: (Read-Host "The offline copy of the manga is up to date. Would you still like to proceed? [Y/n]"))
