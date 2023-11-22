@@ -24,6 +24,11 @@ Read [SETTINGS.md](SETTINGS.md) for configuration instructions and a brief on se
 
 ## What's new?
 
+### v1.4
+v1.4 plans to implement some performance updates, chapter selection updates and smarter chapter selection methods.
+
+A more detailed description of features can be found on PR [#3](https://github.com/ryuukumar/dexget/pull/3).
+
 ### v1.3
 v1.3 gives you more control over your downloads, by implementing easier to change settings. It allows you to select page width in pixels, force grayscale and select quality levels - high, medium and low.
 
