@@ -50,28 +50,28 @@ function Add-Zeroes {
 }
 
 function Write-Box {
-    param (
-        [string]$text,
-        [bool]$center=$false,
+	param (
+		[string]$text,
+		[bool]$center=$false,
 		[System.ConsoleColor]$fgcolor=[System.ConsoleColor]"White"
 	)
-    
-    $lines = $text -split "`n"
-    $maxWidth = ($lines | Measure-Object -Property Length -Maximum).Maximum
+	
+	$lines = $text -split "`n"
+	$maxWidth = ($lines | Measure-Object -Property Length -Maximum).Maximum
 
-    Write-Host ("+" + "-" * $maxWidth + "--" + "+") -ForegroundColor $fgcolor
+	Write-Host ("+" + "-" * $maxWidth + "--" + "+") -ForegroundColor $fgcolor
 
-    foreach ($line in $lines) {
-        if ($center) {
-            $leftPadding = [math]::Floor(($maxWidth - $line.Length) / 2)
-            $rightPadding = $maxWidth - $line.Length - $leftPadding
-            Write-Host ("  " + " " * $leftPadding + $line + " " * $rightPadding + " ") -ForegroundColor $fgcolor
-        } else {
-            Write-Host ("  " + $line.PadRight($maxWidth) + " ") -ForegroundColor $fgcolor
-        }
-    }
+	foreach ($line in $lines) {
+		if ($center) {
+			$leftPadding = [math]::Floor(($maxWidth - $line.Length) / 2)
+			$rightPadding = $maxWidth - $line.Length - $leftPadding
+			Write-Host ("  " + " " * $leftPadding + $line + " " * $rightPadding + " ") -ForegroundColor $fgcolor
+		} else {
+			Write-Host ("  " + $line.PadRight($maxWidth) + " ") -ForegroundColor $fgcolor
+		}
+	}
 
-    Write-Host ("+" + "-" * $maxWidth + "--" + "+")  -ForegroundColor $fgcolor
+	Write-Host ("+" + "-" * $maxWidth + "--" + "+")  -ForegroundColor $fgcolor
 }
 
 function Move-Up {
@@ -92,4 +92,27 @@ function Get-ChpIndex {
 	}
 
 	return -1
+}
+
+# Function to convert a list of numbers into a string of ranges
+function ConvertTo-RangeString {
+	param ( [System.Collections.ArrayList]$Numbers )
+
+	$result = ""
+	$start = $null
+	$end = $null
+
+	for ($i = 0; $i -lt $Numbers.Count; $i++) {
+		if ($null -eq $start) { $start = $Numbers[$i] }
+		
+		$end = $Numbers[$i]
+
+		if ($i -eq $Numbers.Count - 1 -or $Numbers[$i] + 1 -ne $Numbers[$i + 1]) {
+			if ($start -eq $end) { $result += "$start, " }
+			else { $result += "$start-$end, " }
+			$start = $null
+		}
+	}
+
+	return $result.TrimEnd(", ")
 }

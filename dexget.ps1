@@ -222,11 +222,30 @@ foreach ($ch in $manga.data) {
 $avglen = $avglen / $chapters.length
 $latest = [double](($chapters.attributes.chapter | Measure-Object -Maximum).Maximum)
 
+$found_chapters = [System.Collections.ArrayList]@()
+foreach ($ch in $chapters) {
+	$chint = [math]::floor([decimal]($ch.attributes.chapter))
+	if ($found_chapters -notcontains $chint) {
+		$found_chapters.add($chint) | Out-Null
+	}
+}
+
+$missing_chapters = [System.Collections.ArrayList]@()
+for ([int]$i = [math]::floor([decimal]($chapters[0].attributes.chapter));
+		$i -le $latest; $i+=1) {
+	if ($found_chapters -notcontains $i) {
+		$missing_chapters.add($i) | Out-Null
+	}
+}
+
 Write-Host "Scan results:"
 Write-Host " - Found $($chapters.length) chapters." -ForegroundColor Green
 Write-Host " - About $(`"{0:n1}`" -f $avglen) pages per chapter." -ForegroundColor Green
 Write-Host " - First chapter number: $($chapters[0].attributes.chapter)" -ForegroundColor Green
 Write-Host " - Latest available chapter: $latest" -ForegroundColor Green
+if ($missing_chapters.length.length -ne 0) {
+	Write-Host " - Found missing chapters: $(ConvertTo-RangeString $missing_chapters)" -ForegroundColor Green
+}
 
 $chpindex = 0
 $chpnum = 0
