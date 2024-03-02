@@ -56,7 +56,7 @@ function ConvertTo-Hashtable {
 }
 
 function Load-Settings {
-	[hashtable]$settings
+	[hashtable]$settings = @{}
 	if (-not (Test-Path "preferences.json")) {
 		$defsettings | ConvertTo-Json | Out-File 'preferences.json'
 		write-dbg "preferences.json not found, so it was created with default settings." -level "warning"
