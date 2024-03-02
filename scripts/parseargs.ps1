@@ -1,5 +1,7 @@
 
 
+. "$PSScriptRoot/helpmsg.ps1"
+
 function Parse-Args {
 	param (
 		[ref]$argsettings,
@@ -47,6 +49,9 @@ function Parse-Args {
 			}
 			if ($cmdargs[$i] -eq "--no-banner") {
 				$argsettings.Value.banner = $false
+			}
+			if ($cmdargs[$i] -eq "--help") {
+				Write-HelpMsg
 			}
 		}
 		else { break }

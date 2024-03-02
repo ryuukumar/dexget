@@ -36,6 +36,7 @@ $VERSION = '1.4'
 . "$PSScriptRoot/scripts/progdisp.ps1"
 . "$PSScriptRoot/scripts/defaults.ps1"
 . "$PSScriptRoot/scripts/parseargs.ps1"
+. "$PSScriptRoot/scripts/helpmsg.ps1"
 
 
 
@@ -55,21 +56,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 
 
 #  1. LOAD SETTINGS
-
-[hashtable]$settings = @{}
-if (-not (Test-Path "preferences.json")) {
-	$defsettings | ConvertTo-Json | Out-File 'preferences.json'
-	write-dbg "preferences.json not found, so it was created with default settings." -level "warning"
-}
-else {
-	$settings = ConvertTo-Hashtable (Get-Content 'preferences.json' | ConvertFrom-Json)
-	if (Update-Settings -default $defsettings -current $settings -eq $true) {
-		write-dbg "preferences.json was updated with some new settings. Please rerun DexGet for normal execution." -level "warning"
-		$settings | ConvertTo-Json | Out-File 'preferences.json'
-		exit
-	}
-}
-
+$settings = Load-Settings
 $debugmode = $settings.'general'.'debug-mode'
 
 if ($settings.'general'.'debug-mode') {
@@ -98,7 +85,8 @@ if ($settings.'general'.'update-on-launch' -eq $true) {
 if ($args[0]) {
 	$inputstr = $args[0]
 } else {
-	$inputstr = Read-Host "Enter MangaDex title ID"
+	Write-HelpMsg
+	exit
 }
 
 $url = ([regex]::Matches($inputstr, '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})'))[0]
