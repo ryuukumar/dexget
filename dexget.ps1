@@ -110,6 +110,7 @@ $argsettings = [PSCustomObject]@{
 	banner = $true
 	startch = -1
 	endch = -1
+	jsonprogress = $false
 }
 
 Parse-Args ([ref]$argsettings) $args
@@ -359,7 +360,7 @@ function download-queue {
 		$imgdljob = Start-ThreadJob -ScriptBlock $imgdl -ArgumentList ([ref]$chapterqueue)
 		$imgconvjob = Start-ThreadJob -ScriptBlock $imgconv -ArgumentList ([ref]$chapterqueue)
 		$pdfconvjob = Start-ThreadJob -ScriptBlock $pdfconv -ArgumentList ([ref]$chapterqueue)
-		& $progdisp ([ref]$chapterqueue)
+		& $progdisp ([ref]$chapterqueue) ($argsettings.jsonprogress)
 	} else {
 		Write-Box "Starting download process."
 		& $imgdl ([ref]$chapterqueue)

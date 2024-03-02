@@ -42,6 +42,9 @@ function Parse-Args {
 					exit
 				}
 			}
+			if ($cmdargs[$i] -eq "--jsonprogress" -or $cmdargs[$i] -eq "-j") {
+				$argsettings.value.jsonprogress = $true
+			}
 			if ($cmdargs[$i] -eq "--no-banner") {
 				$argsettings.Value.banner = $false
 			}

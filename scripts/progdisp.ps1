@@ -3,7 +3,8 @@
 
 $progdisp = {
     param(
-        [ref]$chapterqueue
+        [ref]$chapterqueue,
+        [bool]$jsonprogress
     )
 
     $settings | Out-Null
@@ -36,6 +37,40 @@ $progdisp = {
 
     }
 
+    function json-total {
+        param (
+            [int]$imgdltotal,
+            [int]$imgconvtotal,
+            [int]$pdftotal
+        )
+
+        $output = [PSCustomObject]@{
+            type = "count"
+            dldtotal = $imgdltotal
+            cnvtotal = $imgconvtotal
+            pdftotal = $pdftotal
+        }
+
+        write-host ($output | ConvertTo-Json)
+    }
+
+    function json-progress {
+        param (
+            [int]$imgdlprog,
+            [int]$imgconvprog,
+            [int]$pdfprog
+        )
+
+        $output = [PSCustomObject]@{
+            type = "progress"
+            dldprog = $imgdlprog
+            cnvprog = $imgconvprog
+            pdfprog = $pdfprog
+        }
+
+        write-host ($output | ConvertTo-Json)
+    }
+
     $imgdlprog = 0
     $imgconvprog = 0
     $pdfprog = 0
@@ -49,6 +84,10 @@ $progdisp = {
         $pdftotal++
     }
     $imgconvtotal = $imgdltotal
+
+    if ($jsonprogress -eq $true) {
+        json-total $imgdltotal $imgconvtotal $pdftotal
+    }
 
     while ($true) {
         # update imgdl progress
@@ -71,14 +110,19 @@ $progdisp = {
             $pdfprog += [int]($_.pdfmade ? 1 : 0)
         }
 
-        # display progress
-        $pos = $host.UI.RawUI.CursorPosition
-	    $pos.Y -= 3
-	    $host.UI.RawUI.CursorPosition = $pos
+        if ($jsonprogress) {
+            json-progress $imgdlprog $imgconvprog $pdfprog
+        }
+        else {
+            # display progress
+            $pos = $host.UI.RawUI.CursorPosition
+            $pos.Y -= 3
+            $host.UI.RawUI.CursorPosition = $pos
 
-        show-progress $imgdlprog    $imgdltotal     "Download      "    $(([string]$imgdltotal).length * 2 + 2)
-        show-progress $imgconvprog  $imgconvtotal   "Compression   "    $(([string]$imgdltotal).length * 2 + 2)
-        show-progress $pdfprog      $pdftotal       "PDF Conversion"    $(([string]$imgdltotal).length * 2 + 2)
+            show-progress $imgdlprog    $imgdltotal     "Download      "    $(([string]$imgdltotal).length * 2 + 2)
+            show-progress $imgconvprog  $imgconvtotal   "Compression   "    $(([string]$imgdltotal).length * 2 + 2)
+            show-progress $pdfprog      $pdftotal       "PDF Conversion"    $(([string]$imgdltotal).length * 2 + 2)
+        }
 
         # break condition
         if ($imgdlprog -eq $imgdltotal -and $imgconvprog -eq $imgconvtotal -and $pdfprog -eq $pdftotal) { break }
@@ -86,4 +130,10 @@ $progdisp = {
         # pause
         Start-Sleep -Milliseconds 200
     }
+
+    $output = [PSCustomObject]@{
+        type = "complete"
+    }
+
+    write-host ($output | ConvertTo-Json)
 }
