@@ -35,6 +35,7 @@ $VERSION = '1.4'
 . "$PSScriptRoot/scripts/pdfconv.ps1"
 . "$PSScriptRoot/scripts/progdisp.ps1"
 . "$PSScriptRoot/scripts/defaults.ps1"
+. "$PSScriptRoot/scripts/parseargs.ps1"
 
 
 
@@ -107,31 +108,11 @@ $argsettings = [PSCustomObject]@{
 	cloud = $false
 	all = $false
 	banner = $true
+	startch = -1
+	endch = -1
 }
 
-$i=0
-while ($true) {
-	if ($args[$i]) {
-		if ($args[$i] -eq "--continue" -or $args[$i] -eq "-c") {
-			$argsettings.continue = $true
-		}
-		if ($args[$i] -eq "--cloud" -or $args[$i] -eq "-C") {
-			if ($settings.'general'.'enable-cloud-saving' -eq $false) {
-				write-dbg "--cloud was passed but cloud saving is disabled in the preferences. The argument will be ignored." -level "warning"
-			} else {
-				$argsettings.cloud = $true
-			}
-		}
-		if ($args[$i] -eq "--all" -or $args[$i] -eq "-a") {
-			$argsettings.all = $true
-		}
-		if ($args[$i] -eq "--no-banner") {
-			$argsettings.banner = $false
-		}
-	}
-	else { break }
-	$i++
-}
+Parse-Args ([ref]$argsettings) $args
 
 if ($argsettings.banner -eq $true) {
 	Write-Host ""
@@ -312,14 +293,18 @@ if (test-path "$($settings.'general'.'manga-save-directory')/(Manga) ${mangatitl
 			$chpindex = $chindex+1
 			$chpnum = $lastch
 		} else {
-			$chpnum = read-host "Start from chapter"
+			$chpnum = ($argsettings.startch -eq -1 `
+						? (read-host "Start from chapter") `
+						: $argsettings.startch)
 			$chpindex = get-chpindex ([ref]$chapters) $chpnum
 		}
 	}
 }
 
 else {
-	$chpnum = read-host "Start from chapter"
+	$chpnum = ($argsettings.startch -eq -1 `
+				? (read-host "Start from chapter") `
+				: $argsettings.startch)
 	$chpindex = get-chpindex ([ref]$chapters) $chpnum
 }
 
@@ -397,7 +382,9 @@ try {
 	if (($chpindex) -lt $chapters.length) {
 		$choice = ($argsettings.all `
 			? 'y' `
-			: (Read-Host "There are $($chapters.length - 1 - $chpindex) more chapters after the given ID. Would you like to download all of them? [Y/n/s]"))
+			: (($argsettings.endch -eq -1) `
+				? (Read-Host "There are $($chapters.length - 1 - $chpindex) more chapters after the given ID. Would you like to download all of them? [Y/n/s]") `
+				: 's'))
 
 		$clchoice
 		if ($settings.'general'.'enable-cloud-saving' -eq $true) {
@@ -426,7 +413,9 @@ try {
 
 		else {
 			if ($choice -eq "S" -or $choice -eq "s") {
-				[int]$last = Read-Host "Number of chapters to download"
+				[int]$last = ($argsettings.endch -eq -1 `
+								? (Read-Host "Number of chapters to download") `
+								: $argsettings.endch)
 				$last += $chpindex
 				if ($last -ge $chapters.length) {
 					$last = $chapters.length
