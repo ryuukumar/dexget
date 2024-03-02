@@ -8,6 +8,7 @@ function Write-HelpMsg {
 		'--help' = 'Prints this message'
 		'--jsonprogress, -j' = 'Show progress via JSON'
 		'--no-banner' = 'Do not show banner'
+		'--scanonly, -l' = 'Fetch manga information and quit. This mode will not download anything.'
 		'--start X, -s X' = 'Start from chapter X'
 	}
 	

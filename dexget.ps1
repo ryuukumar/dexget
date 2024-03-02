@@ -100,6 +100,7 @@ $argsettings = [PSCustomObject]@{
 	startch = -1
 	endch = -1
 	jsonprogress = $false
+	scanonly = $false
 }
 
 Parse-Args ([ref]$argsettings) $args
@@ -120,6 +121,11 @@ Scan-Manga $url ($settings.'general'.'manga-language') ([ref]$mangatitle) ([ref]
 $chpindex = 0
 $chpnum = 0
 
+if ($argsettings.scanonly) {
+	Write-Host "`nExiting."
+	$settings | ConvertTo-Json | Out-File 'preferences.json'
+	exit
+}
 
 #  5. GET USER INPUT ON WHAT TO DO
 

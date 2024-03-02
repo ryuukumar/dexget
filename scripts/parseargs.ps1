@@ -50,6 +50,9 @@ function Parse-Args {
 			if ($cmdargs[$i] -eq "--no-banner") {
 				$argsettings.Value.banner = $false
 			}
+			if ($cmdargs[$i] -eq "--scanonly" -or $cmdargs[$i] -eq "-l") {
+				$argsettings.Value.scanonly = $true
+			}
 			if ($cmdargs[$i] -eq "--help") {
 				Write-HelpMsg
 			}
