@@ -51,7 +51,7 @@ $progdisp = {
             pdftotal = $pdftotal
         }
 
-        write-host ($output | ConvertTo-Json)
+        write-host ($output | ConvertTo-Json -Compress)
     }
 
     function json-progress {
@@ -68,7 +68,7 @@ $progdisp = {
             pdfprog = $pdfprog
         }
 
-        write-host ($output | ConvertTo-Json)
+        write-host ($output | ConvertTo-Json -Compress)
     }
 
     $imgdlprog = 0
@@ -131,9 +131,10 @@ $progdisp = {
         Start-Sleep -Milliseconds 200
     }
 
-    $output = [PSCustomObject]@{
-        type = "complete"
+    if ($jsonprogress) {
+        $output = [PSCustomObject]@{
+            type = "complete"
+        }
+        write-host ($output | ConvertTo-Json -Compress)
     }
-
-    write-host ($output | ConvertTo-Json)
 }
