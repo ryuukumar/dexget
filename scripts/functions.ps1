@@ -28,15 +28,18 @@ function Get-FileType([string]$filename) {
 }
 
 # This function takes an integer file size (in bytes) as input and returns a formatted string with the file size in bytes, kilobytes, or megabytes, depending on the size.
-function Format-Filesize([int]$length) {
+function Format-Filesize([double]$length) {
 	if ($length -lt 1000) {
 		return "$length bytes"
 	}
 	elseif ($length -lt 1MB) {
-		return "{0:N0}KB" -f ($length/1KB)
+		return "{0:N0} KB" -f ($length/1KB)
+	}
+	elseif ($length -lt 1GB) {
+		return "{0:N2} MB" -f ($length/1MB)
 	}
 	else {
-		return "{0:N2}MB" -f ($length/1MB)
+		return "{0:N2} GB" -f ($length/1GB)
 	}
 }
 
