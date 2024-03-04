@@ -3,7 +3,7 @@
 
 $progdisp = {
     param(
-        [ref]$chapterqueue,
+        [ref]$chapterqueueorig,
         [bool]$jsonprogress
     )
 
@@ -79,7 +79,9 @@ $progdisp = {
     $imgconvtotal = 0
     $pdftotal = 0
 
-    $chapterqueue.value | foreach-object {
+    $chapterqueue = $chapterqueueorig.value
+
+    $chapterqueue | foreach-object {
         $imgdltotal += $_.total
         $pdftotal++
     }
@@ -92,13 +94,13 @@ $progdisp = {
     while ($true) {
         # update imgdl progress
         $imgdlprog = 0
-        $chapterqueue.value | foreach-object {
+        $chapterqueue | foreach-object {
             $imgdlprog += $_.dlcomp.length.length
         }
 
         # update img conversion progress
         $imgconvprog = 0
-        $chapterqueue.value | foreach-object {
+        $chapterqueue | foreach-object {
             $imgconvprog += $_.convcomp
         }
 
@@ -106,7 +108,7 @@ $progdisp = {
 
         # update pdf conversion progress
         $pdfprog = 0
-        $chapterqueue.value | foreach-object {
+        $chapterqueue | foreach-object {
             $pdfprog += [int]($_.pdfmade ? 1 : 0)
         }
 
