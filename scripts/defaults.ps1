@@ -55,3 +55,20 @@ function ConvertTo-Hashtable {
 	}
 }
 
+function Load-Settings {
+	[hashtable]$settings = @{}
+	if (-not (Test-Path "preferences.json")) {
+		$defsettings | ConvertTo-Json | Out-File 'preferences.json'
+		write-dbg "preferences.json not found, so it was created with default settings." -level "warning"
+	}
+	else {
+		$settings = ConvertTo-Hashtable (Get-Content 'preferences.json' | ConvertFrom-Json)
+		if (Update-Settings -default $defsettings -current $settings -eq $true) {
+			write-dbg "preferences.json was updated with some new settings. Please rerun DexGet for normal execution." -level "warning"
+			$settings | ConvertTo-Json | Out-File 'preferences.json'
+			exit
+		}
+	}
+	return $settings
+}
+
