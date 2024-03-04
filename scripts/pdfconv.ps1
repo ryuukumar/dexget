@@ -39,8 +39,8 @@ $pdfconv = {
         $magickcomm = ($IsLinux ? "convert" : "magick convert")
         $pdfc | ForEach-Object -ThrottleLimit $settings.'performance'.'maximum-simultaneous-pdf-conversions' -parallel {
             if ($($using:settings).'performance'.'pdf-method' -eq "magick") {
-                Invoke-Expression "$($using:magickcomm) `"$($_.src)/*.jpg`" $($($using:settings).'manga-quality'.'grayscale' ? `
-                    "-colorspace Gray" : " ") -compress JPEG -density 80x `"$($_.dest)`""
+                Invoke-Expression "$($using:magickcomm) -units PixelsPerInch `"$($_.src)/*.jpg`" $($($using:settings).'manga-quality'.'grayscale' ? `
+                    "-colorspace Gray" : " ") -compress JPEG -density 96 `"$($_.dest)`""
             }
             elseif ($($using:settings).'performance'.'pdf-method' -eq "pypdf") {
                 Invoke-Expression "python.exe -m img2pdf `"$($_.src)/*.jpg`" $($($using:settings).'manga-quality'.'grayscale' ? `
