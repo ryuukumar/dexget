@@ -79,7 +79,7 @@ $progdisp = {
     $imgconvtotal = 0
     $pdftotal = 0
 
-    $chapterqueue = $chapterqueueorig.value
+    $chapterqueue = ($chapterqueueorig.value.clone())
 
     $chapterqueue | foreach-object {
         $imgdltotal += $_.total
