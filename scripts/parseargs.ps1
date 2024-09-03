@@ -53,6 +53,14 @@ function Parse-Args {
 			if ($cmdargs[$i] -eq "--scanonly" -or $cmdargs[$i] -eq "-l") {
 				$argsettings.Value.scanonly = $true
 			}
+			if ($cmdargs[$i] -eq "--check-latest") {
+				if ($argsettings.Value.scanonly) {
+					$argsettings.Value.latestonly = $true
+				}
+				else {
+					Write-Dbg "Got argument --check-latest but --scanonly was not specified before it. Ignoring argument." -level "error"
+				}
+			}
 			if ($cmdargs[$i] -eq "--help") {
 				Write-HelpMsg
 			}

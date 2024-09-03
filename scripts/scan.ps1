@@ -13,7 +13,8 @@ function Scan-Manga {
 		[ref]$mangatitle,
 		[ref]$chapters,
 		[ref]$latest,
-		[bool]$jsonmode
+		[bool]$jsonmode,
+		[bool]$latestonly
 	)
 
 	$manga
@@ -25,7 +26,11 @@ function Scan-Manga {
 		$client = New-Object System.Net.WebClient
 		$client.Headers.add('Referer', 'https://mangadex.org/')
 		$client.Headers.add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/116.0')
-		$manga = $client.DownloadString("https://api.mangadex.org/manga/${url}/feed?translatedLanguage[]=${language}&includes[]=scanlation_group&includes[]=user&order[volume]=asc&order[chapter]=asc&includes[]=manga&limit=500") | ConvertFrom-Json
+		if ($latestonly) {
+			$manga = $client.DownloadString("https://api.mangadex.org/manga/${url}/feed?translatedLanguage[]=${language}&includes[]=scanlation_group&includes[]=user&order[volume]=desc&order[chapter]=desc&includes[]=manga&limit=1") | ConvertFrom-Json	
+		} else {
+			$manga = $client.DownloadString("https://api.mangadex.org/manga/${url}/feed?translatedLanguage[]=${language}&includes[]=scanlation_group&includes[]=user&order[volume]=asc&order[chapter]=asc&includes[]=manga&limit=500") | ConvertFrom-Json
+		}
 	}
 	catch {
 		write-host "`nFATAL ERROR!`n" -ForegroundColor red
@@ -62,7 +67,7 @@ function Scan-Manga {
 			}
 			$mangatitle.value = Remove-IllegalChars ($mangatitle.value)
 			if ($jsonmode) {
-				$mangadetails = ($scg | ConvertTo-Json -Compress)
+				$mangadetails = ($scg | ConvertTo-Json -Compress -Depth 10)
 				write-host $mangadetails
 			}
 		}
@@ -118,7 +123,7 @@ function Scan-Manga {
 	}	
 
 	if ($jsonmode) {
-		write-host ($chapters.value | ConvertTo-Json -Compress)
+		write-host ($chapters.value | ConvertTo-Json -Compress -Depth 10)
 	} else {
 		Write-Host "Scan results:"
 		Write-Host " - Found $($chapters.value.length) chapters." -ForegroundColor Green

@@ -101,6 +101,7 @@ $argsettings = [PSCustomObject]@{
 	endch = -1
 	jsonprogress = $false
 	scanonly = $false
+	latestonly = $false
 }
 
 Parse-Args ([ref]$argsettings) $args
@@ -116,7 +117,8 @@ $mangatitle = ""
 $chapters = @{}
 [int32]$latest = 0
 
-Scan-Manga $url ($settings.'general'.'manga-language') ([ref]$mangatitle) ([ref]$chapters) ([ref]$latest) $argsettings.jsonprogress
+Scan-Manga  $url ($settings.'general'.'manga-language') ([ref]$mangatitle) ([ref]$chapters) ([ref]$latest) `
+			$argsettings.jsonprogress $argsettings.latestonly
 
 $chpindex = 0
 $chpnum = 0
