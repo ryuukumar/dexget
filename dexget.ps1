@@ -7,7 +7,7 @@
 #
 
 
-$VERSION = '1.3'
+$VERSION = '1.4'
 
 
 
@@ -35,6 +35,9 @@ $VERSION = '1.3'
 . "$PSScriptRoot/scripts/pdfconv.ps1"
 . "$PSScriptRoot/scripts/progdisp.ps1"
 . "$PSScriptRoot/scripts/defaults.ps1"
+. "$PSScriptRoot/scripts/parseargs.ps1"
+. "$PSScriptRoot/scripts/helpmsg.ps1"
+. "$PSScriptRoot/scripts/scan.ps1"
 
 
 
@@ -54,21 +57,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 
 
 #  1. LOAD SETTINGS
-
-[hashtable]$settings = @{}
-if (-not (Test-Path "preferences.json")) {
-	$defsettings | ConvertTo-Json | Out-File 'preferences.json'
-	write-dbg "preferences.json not found, so it was created with default settings." -level "warning"
-}
-else {
-	$settings = ConvertTo-Hashtable (Get-Content 'preferences.json' | ConvertFrom-Json)
-	if (Update-Settings -default $defsettings -current $settings -eq $true) {
-		write-dbg "preferences.json was updated with some new settings. Please rerun DexGet for normal execution." -level "warning"
-		$settings | ConvertTo-Json | Out-File 'preferences.json'
-		exit
-	}
-}
-
+$settings = Load-Settings
 $debugmode = $settings.'general'.'debug-mode'
 
 if ($settings.'general'.'debug-mode') {
@@ -97,7 +86,8 @@ if ($settings.'general'.'update-on-launch' -eq $true) {
 if ($args[0]) {
 	$inputstr = $args[0]
 } else {
-	$inputstr = Read-Host "Enter MangaDex title ID"
+	Write-HelpMsg
+	exit
 }
 
 $url = ([regex]::Matches($inputstr, '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})'))[0]
@@ -107,31 +97,14 @@ $argsettings = [PSCustomObject]@{
 	cloud = $false
 	all = $false
 	banner = $true
+	startch = -1
+	endch = -1
+	jsonprogress = $false
+	scanonly = $false
+	latestonly = $false
 }
 
-$i=0
-while ($true) {
-	if ($args[$i]) {
-		if ($args[$i] -eq "--continue" -or $args[$i] -eq "-c") {
-			$argsettings.continue = $true
-		}
-		if ($args[$i] -eq "--cloud" -or $args[$i] -eq "-C") {
-			if ($settings.'general'.'enable-cloud-saving' -eq $false) {
-				write-dbg "--cloud was passed but cloud saving is disabled in the preferences. The argument will be ignored." -level "warning"
-			} else {
-				$argsettings.cloud = $true
-			}
-		}
-		if ($args[$i] -eq "--all" -or $args[$i] -eq "-a") {
-			$argsettings.all = $true
-		}
-		if ($args[$i] -eq "--no-banner") {
-			$argsettings.banner = $false
-		}
-	}
-	else { break }
-	$i++
-}
+Parse-Args ([ref]$argsettings) $args
 
 if ($argsettings.banner -eq $true) {
 	Write-Host ""
@@ -140,95 +113,23 @@ if ($argsettings.banner -eq $true) {
 }
 
 
-#  3. DOWNLOAD URL
+$mangatitle = ""
+$chapters = @{}
+[int32]$latest = 0
 
-# Long term:
-# The permitted "limit" per request is 500 chapters. For anything beyond that, it is possible to use the
-# "offset" parameter to get the chapters after 500 (by index). I could probably count on two hands how many
-# manga (I would bother reading) have more than 500 chapters though.
-
-Write-Host "Looking though URL...`r" -NoNewline
-
-try {
-	$client = New-Object System.Net.WebClient
-	$client.Headers.add('Referer', 'https://mangadex.org/')
-	$client.Headers.add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/116.0')
-	$manga = $client.DownloadString("https://api.mangadex.org/manga/${url}/feed?translatedLanguage[]=$($settings.'general'.'manga-language')&includes[]=scanlation_group&includes[]=user&order[volume]=asc&order[chapter]=asc&includes[]=manga&limit=500") | ConvertFrom-Json
-}
-catch {
-	write-host "`nFATAL ERROR!`n" -ForegroundColor red
-	write-host "Something went wrong while getting the manga metadata. You can try the following:`n - Verify that this is the correct URL:`n`n`thttps://mangadex.org/title/${url}/`n`n - Check your internet connection.`n - Make sure there is no firewall blocking PowerShell.`n - If this doesn't fix it, report a bug."
-	write-host "`nTechnical details:`n$_" -ForegroundColor Yellow
-	exit
-}
-
-
-#  4. SCOUR MANGA FOR DATA
-
-$groups=@()
-$mangaid=""
-$mangatitle=""
-
-foreach ($scg in $manga.data[0].relationships) {
-	if ($scg.type -eq "scanlation_group") { 
-		$groups += $scg.id
-	}
-	# TODO: look into $scg.attributes.altTitles to give language-specific titles to manga
-	if ($scg.type -eq "manga") {
-		$mangaid = $scg.id
-		[string]$titles = $scg.attributes.title
-		$titles = $titles.substring(2, $titles.length - 3)
-		$titles = $titles -replace ';',"`n"
-		$titlelist = $titles | ConvertFrom-StringData
-		if ($titlelist.en) {
-			$mangatitle = $titlelist.en
-		} elseif ($titlelist.ja) {
-			$mangatitle = $titlelist.ja
-		} else {
-			$mangatitle = $mangaid
-		}
-		$mangatitle = Remove-IllegalChars ($mangatitle)
-	}
-}
-
-write-host "Identified title: " -NoNewline
-write-host "$mangatitle" -ForegroundColor Yellow
-
-if($mangatitle.length -gt 30) {
-	# U+2026 -> ellipsis (three dots)
-	$mangatitle = $mangatitle.substring(0, 20) + [char]0x2026
-}
-
-$chapters = @()
-[double]$avglen = 0
-
-foreach ($ch in $manga.data) {
-	if ($ch.type -ne "chapter") {		# not a chapter
-		continue
-	}
-	if ($null -ne $ch.attributes.externalUrl) {    # external chapter
-		write-dbg "Found external link for chapter $($ch.attributes.chapter):`n`t`t$($ch.attributes.externalUrl)" -level "debug"
-		continue
-	}
-	if ($chapters.attributes.chapter -contains $ch.attributes.chapter) {    # chapter already processed
-		continue
-	}
-
-	# fresh chapter which we can download, so add it
-	$chapters += $ch
-	$avglen += $ch.attributes.pages
-}
-
-$avglen = $avglen / $chapters.length
-
-Write-Host "Scan results:"
-Write-Host " - Found $($chapters.length) chapters." -ForegroundColor Green
-Write-Host " - About $(`"{0:n1}`" -f $avglen) pages per chapter." -ForegroundColor Green
-Write-Host " - First chapter number: $($chapters[0].attributes.chapter)" -ForegroundColor Green
+Scan-Manga  $url ($settings.'general'.'manga-language') ([ref]$mangatitle) ([ref]$chapters) ([ref]$latest) `
+			$argsettings.jsonprogress $argsettings.latestonly
 
 $chpindex = 0
 $chpnum = 0
 
+if ($argsettings.scanonly) {
+	if (-not $argsettings.jsonprogress) {
+		Write-Host "`nExiting."
+	}
+	$settings | ConvertTo-Json | Out-File 'preferences.json'
+	exit
+}
 
 #  5. GET USER INPUT ON WHAT TO DO
 
@@ -250,7 +151,26 @@ if (test-path "$($settings.'general'.'manga-save-directory')/(Manga) ${mangatitl
 	$lastch = [double](($filenos | Measure-Object -Maximum).Maximum)
 	$chindex = get-chpindex ([ref]$chapters) $lastch
 
-	if ($chindex -eq $chapters.length - 1) {
+	if ($chindex -eq -1) {
+		write-dbg "The latest chapter downloaded ($lastch) is no longer available. The current latest chapter is $latest." -level "warning"
+		write-dbg "This is either a result of broken downloads or a rollback on MangaDex. It is strongly recommended to manually fix this download before proceeding." -level "warning"
+		$redown = ($argsettings.continue `
+					? 'y' `
+					: (Read-Host "The MangaDex release has older chapters. Would you like to download the currently available latest chapter? [Y/n]"))
+		if ($redown -eq 'Y' -or $redown -eq 'y') {
+			$chpindex = get-chpindex ([ref]$chapters) $latest
+		}
+		else {
+			Write-Host "Nothing to download. Exiting."
+			exit
+		}
+
+		if ($argsettings.continue) {
+			write-dbg "DexGet will download chapter $latest, but it will not delete any chapters after $latest including $lastch." -level "warning"
+		}
+	}
+
+	elseif ($chindex -eq $chapters.length - 1) {
 		$redown = ($argsettings.continue `
 						? 'n' `
 						: (Read-Host "The offline copy of the manga is up to date. Would you still like to proceed? [Y/n]"))
@@ -272,14 +192,18 @@ if (test-path "$($settings.'general'.'manga-save-directory')/(Manga) ${mangatitl
 			$chpindex = $chindex+1
 			$chpnum = $lastch
 		} else {
-			$chpnum = read-host "Start from chapter"
+			$chpnum = ($argsettings.startch -eq -1 `
+						? (read-host "Start from chapter") `
+						: $argsettings.startch)
 			$chpindex = get-chpindex ([ref]$chapters) $chpnum
 		}
 	}
 }
 
 else {
-	$chpnum = read-host "Start from chapter"
+	$chpnum = ($argsettings.startch -eq -1 `
+				? (read-host "Start from chapter") `
+				: $argsettings.startch)
 	$chpindex = get-chpindex ([ref]$chapters) $chpnum
 }
 
@@ -334,7 +258,7 @@ function download-queue {
 		$imgdljob = Start-ThreadJob -ScriptBlock $imgdl -ArgumentList ([ref]$chapterqueue)
 		$imgconvjob = Start-ThreadJob -ScriptBlock $imgconv -ArgumentList ([ref]$chapterqueue)
 		$pdfconvjob = Start-ThreadJob -ScriptBlock $pdfconv -ArgumentList ([ref]$chapterqueue)
-		& $progdisp ([ref]$chapterqueue)
+		& $progdisp ([ref]$chapterqueue) ($argsettings.jsonprogress)
 	} else {
 		Write-Box "Starting download process."
 		& $imgdl ([ref]$chapterqueue)
@@ -357,7 +281,9 @@ try {
 	if (($chpindex) -lt $chapters.length) {
 		$choice = ($argsettings.all `
 			? 'y' `
-			: (Read-Host "There are $($chapters.length - 1 - $chpindex) more chapters after the given ID. Would you like to download all of them? [Y/n/s]"))
+			: (($argsettings.endch -eq -1) `
+				? (Read-Host "There are $($chapters.length - 1 - $chpindex) more chapters after the given ID. Would you like to download all of them? [Y/n/s]") `
+				: 's'))
 
 		$clchoice
 		if ($settings.'general'.'enable-cloud-saving' -eq $true) {
@@ -386,7 +312,9 @@ try {
 
 		else {
 			if ($choice -eq "S" -or $choice -eq "s") {
-				[int]$last = Read-Host "Number of chapters to download"
+				[int]$last = ($argsettings.endch -eq -1 `
+								? (Read-Host "Number of chapters to download") `
+								: $argsettings.endch)
 				$last += $chpindex
 				if ($last -ge $chapters.length) {
 					$last = $chapters.length

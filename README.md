@@ -24,6 +24,13 @@ Read [SETTINGS.md](SETTINGS.md) for configuration instructions and a brief on se
 
 ## What's new?
 
+### v1.4
+v1.4 implements some QOL features like detecting missing chapters and identifying when some chapters have been rolled back from Mangadex.
+
+For developers, v1.4 implements JSON mode, which provides various metadata and progress updates as JSON on stdout. Additionally, the capabilities of command-line arguments have been enhanced, so actions can be decided without any requirement for interaction. DexGet can now also run in scan-only mode, where it prints metadata about the manga and quits without downloading anything.
+
+A more detailed description of features can be found on PR [#3](https://github.com/ryuukumar/dexget/pull/3).
+
 ### v1.3
 v1.3 gives you more control over your downloads, by implementing easier to change settings. It allows you to select page width in pixels, force grayscale and select quality levels - high, medium and low.
 

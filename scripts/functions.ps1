@@ -28,15 +28,18 @@ function Get-FileType([string]$filename) {
 }
 
 # This function takes an integer file size (in bytes) as input and returns a formatted string with the file size in bytes, kilobytes, or megabytes, depending on the size.
-function Format-Filesize([int]$length) {
+function Format-Filesize([double]$length) {
 	if ($length -lt 1000) {
 		return "$length bytes"
 	}
 	elseif ($length -lt 1MB) {
-		return "{0:N0}KB" -f ($length/1KB)
+		return "{0:N0} KB" -f ($length/1KB)
+	}
+	elseif ($length -lt 1GB) {
+		return "{0:N2} MB" -f ($length/1MB)
 	}
 	else {
-		return "{0:N2}MB" -f ($length/1MB)
+		return "{0:N2} GB" -f ($length/1GB)
 	}
 }
 
@@ -50,28 +53,28 @@ function Add-Zeroes {
 }
 
 function Write-Box {
-    param (
-        [string]$text,
-        [bool]$center=$false,
+	param (
+		[string]$text,
+		[bool]$center=$false,
 		[System.ConsoleColor]$fgcolor=[System.ConsoleColor]"White"
 	)
-    
-    $lines = $text -split "`n"
-    $maxWidth = ($lines | Measure-Object -Property Length -Maximum).Maximum
+	
+	$lines = $text -split "`n"
+	$maxWidth = ($lines | Measure-Object -Property Length -Maximum).Maximum
 
-    Write-Host ("+" + "-" * $maxWidth + "--" + "+") -ForegroundColor $fgcolor
+	Write-Host ("+" + "-" * $maxWidth + "--" + "+") -ForegroundColor $fgcolor
 
-    foreach ($line in $lines) {
-        if ($center) {
-            $leftPadding = [math]::Floor(($maxWidth - $line.Length) / 2)
-            $rightPadding = $maxWidth - $line.Length - $leftPadding
-            Write-Host ("  " + " " * $leftPadding + $line + " " * $rightPadding + " ") -ForegroundColor $fgcolor
-        } else {
-            Write-Host ("  " + $line.PadRight($maxWidth) + " ") -ForegroundColor $fgcolor
-        }
-    }
+	foreach ($line in $lines) {
+		if ($center) {
+			$leftPadding = [math]::Floor(($maxWidth - $line.Length) / 2)
+			$rightPadding = $maxWidth - $line.Length - $leftPadding
+			Write-Host ("  " + " " * $leftPadding + $line + " " * $rightPadding + " ") -ForegroundColor $fgcolor
+		} else {
+			Write-Host ("  " + $line.PadRight($maxWidth) + " ") -ForegroundColor $fgcolor
+		}
+	}
 
-    Write-Host ("+" + "-" * $maxWidth + "--" + "+")  -ForegroundColor $fgcolor
+	Write-Host ("+" + "-" * $maxWidth + "--" + "+")  -ForegroundColor $fgcolor
 }
 
 function Move-Up {
@@ -92,4 +95,81 @@ function Get-ChpIndex {
 	}
 
 	return -1
+}
+
+# Function to convert a list of numbers into a string of ranges
+function ConvertTo-RangeString {
+	param ( [System.Collections.ArrayList]$Numbers )
+
+	$result = ""
+	$start = $null
+	$end = $null
+
+	for ($i = 0; $i -lt $Numbers.Count; $i++) {
+		if ($null -eq $start) { $start = $Numbers[$i] }
+		
+		$end = $Numbers[$i]
+
+		if ($i -eq $Numbers.Count - 1 -or $Numbers[$i] + 1 -ne $Numbers[$i + 1]) {
+			if ($start -eq $end) { $result += "$start, " }
+			else { $result += "$start-$end, " }
+			$start = $null
+		}
+	}
+
+	return $result.TrimEnd(", ")
+}
+
+function Get-Title {
+	param (
+		[psobject]$titleobject,
+		[string]$mangaid
+	)
+
+	$title = ""
+
+	if ($null -ne $titleobject.en) {
+		$title = $titleobject.en
+	} elseif ($null -ne $titleobject.ja) {
+		$title = $titleobject.ja
+	} elseif ($null -ne $titleobject."ja-ro") {
+		$title = $titleobject."ja-ro"
+	} else {
+		return $mangaid
+	}
+
+	if($title.length -gt 30) {
+		# U+2026 -> ellipsis (three dots)
+		$title = $title.substring(0, 20) + [char]0x2026
+	}
+
+	$title = Remove-IllegalChars $title
+
+	return $title
+}
+
+function Get-LatestCh {
+	param (
+		[string]$mangadir
+	)
+
+	$files = $(Get-ChildItem $mangadir)
+	$filenos = @()
+
+	foreach ($file in $files.name) {
+		[double]$chnum = (($file -split "\)")[0]) -replace '[^0-9.]',''
+		if ($chnum -ge 1E+10) {
+			write-dbg "There is an incomplete download discovered:`n`t`t$((Resolve-Path "$($settings.'general'.'manga-save-directory')/(Manga) ${mangatitle}/$file").Path)`n`t`tIt is suggested to delete this folder manually." -level "warning"
+			continue
+		}
+		$filenos += $chnum
+	}
+
+	if ($filenos.length -lt 1) {
+		return $null
+	}
+
+	$lastch = [double](($filenos | Measure-Object -Maximum).Maximum)
+
+	return $lastch
 }
