@@ -124,7 +124,9 @@ $chpindex = 0
 $chpnum = 0
 
 if ($argsettings.scanonly) {
-	Write-Host "`nExiting."
+	if (-not $argsettings.jsonprogress) {
+		Write-Host "`nExiting."
+	}
 	$settings | ConvertTo-Json | Out-File 'preferences.json'
 	exit
 }

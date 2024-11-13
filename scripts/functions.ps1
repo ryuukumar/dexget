@@ -119,3 +119,57 @@ function ConvertTo-RangeString {
 
 	return $result.TrimEnd(", ")
 }
+
+function Get-Title {
+	param (
+		[psobject]$titleobject,
+		[string]$mangaid
+	)
+
+	$title = ""
+
+	if ($null -ne $titleobject.en) {
+		$title = $titleobject.en
+	} elseif ($null -ne $titleobject.ja) {
+		$title = $titleobject.ja
+	} elseif ($null -ne $titleobject."ja-ro") {
+		$title = $titleobject."ja-ro"
+	} else {
+		return $mangaid
+	}
+
+	if($title.length -gt 30) {
+		# U+2026 -> ellipsis (three dots)
+		$title = $title.substring(0, 20) + [char]0x2026
+	}
+
+	$title = Remove-IllegalChars $title
+
+	return $title
+}
+
+function Get-LatestCh {
+	param (
+		[string]$mangadir
+	)
+
+	$files = $(Get-ChildItem $mangadir)
+	$filenos = @()
+
+	foreach ($file in $files.name) {
+		[double]$chnum = (($file -split "\)")[0]) -replace '[^0-9.]',''
+		if ($chnum -ge 1E+10) {
+			write-dbg "There is an incomplete download discovered:`n`t`t$((Resolve-Path "$($settings.'general'.'manga-save-directory')/(Manga) ${mangatitle}/$file").Path)`n`t`tIt is suggested to delete this folder manually." -level "warning"
+			continue
+		}
+		$filenos += $chnum
+	}
+
+	if ($filenos.length -lt 1) {
+		return $null
+	}
+
+	$lastch = [double](($filenos | Measure-Object -Maximum).Maximum)
+
+	return $lastch
+}

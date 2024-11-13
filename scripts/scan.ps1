@@ -20,7 +20,9 @@ function Scan-Manga {
 	$manga
 	$avglen = 0.0
 
-	Write-Host "Looking though URL...`r" -NoNewline
+	if (-not $jsonmode) {
+		Write-Host "Looking though URL...`r" -NoNewline
+	}
 
 	try {
 		$client = New-Object System.Net.WebClient
@@ -28,6 +30,7 @@ function Scan-Manga {
 		$client.Headers.add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/116.0')
 		if ($latestonly) {
 			$manga = $client.DownloadString("https://api.mangadex.org/manga/${url}/feed?translatedLanguage[]=${language}&includes[]=scanlation_group&includes[]=user&order[volume]=desc&order[chapter]=desc&includes[]=manga&limit=1") | ConvertFrom-Json	
+			# write-host "https://api.mangadex.org/manga/${url}/feed?translatedLanguage[]=${language}&includes[]=scanlation_group&includes[]=user&order[volume]=desc&order[chapter]=desc&includes[]=manga&limit=1"
 		} else {
 			$manga = $client.DownloadString("https://api.mangadex.org/manga/${url}/feed?translatedLanguage[]=${language}&includes[]=scanlation_group&includes[]=user&order[volume]=asc&order[chapter]=asc&includes[]=manga&limit=500") | ConvertFrom-Json
 		}
@@ -51,24 +54,11 @@ function Scan-Manga {
 		if ($scg.type -eq "scanlation_group") { 
 			$groups += $scg.id
 		}
-		# TODO: look into $scg.attributes.altTitles to give language-specific titles to manga
 		if ($scg.type -eq "manga") {
-			$mangaid = $scg.id
-			[string]$titles = $scg.attributes.title
-			$titles = $titles.substring(2, $titles.length - 3)
-			$titles = $titles -replace ';',"`n"
-			$titlelist = $titles | ConvertFrom-StringData
-			if ($titlelist.en) {
-				$mangatitle.value = $titlelist.en
-			} elseif ($titlelist.ja) {
-				$mangatitle.value = $titlelist.ja
-			} else {
-				$mangatitle.value = $mangaid
-			}
-			$mangatitle.value = Remove-IllegalChars ($mangatitle.value)
+			$mangatitle.value = get-title $scg.attributes.title $mangaid
 			if ($jsonmode) {
 				$mangadetails = ($scg | ConvertTo-Json -Compress -Depth 10)
-				write-host $mangadetails
+				Write-Output $mangadetails
 			}
 		}
 	}
@@ -76,11 +66,6 @@ function Scan-Manga {
 	if (-not $jsonmode) {
 		write-host "Identified title: " -NoNewline
 		write-host "$($mangatitle.value)" -ForegroundColor Yellow
-	}
-
-	if($mangatitle.value.length -gt 30) {
-		# U+2026 -> ellipsis (three dots)
-		$mangatitle.value = $mangatitle.value.substring(0, 20) + [char]0x2026
 	}
 
 	$chapters.value = @()
@@ -123,7 +108,7 @@ function Scan-Manga {
 	}	
 
 	if ($jsonmode) {
-		write-host ($chapters.value | ConvertTo-Json -Compress -Depth 10)
+		Write-Output ($chapters.value | ConvertTo-Json -Compress -Depth 10)
 	} else {
 		Write-Host "Scan results:"
 		Write-Host " - Found $($chapters.value.length) chapters." -ForegroundColor Green
